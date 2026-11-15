@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Documentation · Developer Portal</title>
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23111113'/%3E%3Cpath d='M4 4h3.2v3.2H4zM8.8 4H12v3.2H8.8zM4 8.8h3.2V12H4zM8.8 8.8H12V12H8.8z' fill='%23f7f7f8'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/styles.css" />
+    <style>
+      :root {
+        --scalar-font: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+        --scalar-font-code: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+      }
+    </style>
+  </head>
+  <body class="api-page">
+    <header class="portal-api-bar">
+      <a class="portal-back" href="../">Developer Portal</a>
+      <span class="portal-api-sep" aria-hidden="true">/</span>
+      <span class="portal-api-title">API Documentation</span>
+    </header>
+    <div id="app" class="api-reference"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.78.1"></script>
+    <script>
+      (function () {
+        var app = document.getElementById("app");
+
+        function specUrl() {
+          var current = new URL(window.location.href);
+          var path = current.pathname;
+          if (path.endsWith("/index.html")) {
+            path = path.slice(0, -"index.html".length);
+          } else if (!path.endsWith("/")) {
+            path += "/";
+          }
+          return new URL("openapi.yaml", current.origin + path).href;
+        }
+
+        if (!window.Scalar || !window.Scalar.createApiReference) {
+          app.innerHTML =
+            '<p class="api-fallback">API reference failed to load. Check the network connection and reload.</p>';
+          return;
+        }
+
+        var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+        Scalar.createApiReference("#app", {
+          url: specUrl(),
+          proxyUrl: "https://proxy.scalar.com",
+          theme: "default",
+          layout: "modern",
+          darkMode: prefersDark,
+          forceDarkModeState: prefersDark ? "dark" : "light",
+          hideDarkModeToggle: true,
+          withDefaultFonts: false,
+          hideClientButton: false,
+          showDeveloperTools: "never",
+          agent: { disabled: true },
+        });
+      })();
+    </script>
+  </body>
+</html>

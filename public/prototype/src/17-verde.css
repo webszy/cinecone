@@ -1,0 +1,746 @@
+/* ==========================================================================
+   v2 「Verde Royale」· 全面改版（不止换色：材质 / 按钮 / 布局节奏重做）
+   设计语言：
+     · 卡片 = 双层玻璃：深绿渐变底 + 金色发丝描边 + 顶部高光线 + 角部氛围光
+     · 按钮 = 3D 立体：上高光 + 底部实体棱边（0 3px 0），按压整体下沉
+     · 数字 = 金箔渐变字（background-clip）
+     · 布局 = 资产卡金币徽章 + 任务行卡片化 + 中央 Tab 金币凸起
+   原则不变：只动视觉层，结构 id / JS 逻辑 / 金币口径零改动
+   ========================================================================== */
+
+:root{
+  --brand:#2FCB5E;
+  --brand-d:#149A3E;
+  --brand-soft:rgba(47,203,94,.16);
+  --gloss-1:#5CEB8B;
+  --gloss-2:#2FCB5E;
+  --gloss-3:#189A40;
+  --bevel:#0C6E30;                 /* 绿按钮底部棱边 */
+  --gold-hi:#FFEDA8;
+  --gold-mid:#FFC02E;
+  --gold-low:#D98F08;
+  --gold-bevel:#8F6203;            /* 金按钮底部棱边 */
+  --dlg-gold:rgba(255,196,64,.92);
+  --card-a:#1B2A1F;                /* 卡片亮端 */
+  --card-b:#0F170F;                /* 卡片暗端 */
+  --card-line:rgba(255,214,120,.22);
+  --card-line-soft:rgba(255,255,255,.08);
+}
+
+::selection{background:rgba(47,203,94,.35);}
+
+/* ==========================================================================
+   1. 全局底色：绿黑渐变 + 顶部金色氛围光（页面不再是一片死黑）
+   ========================================================================== */
+body{background:#05080A;}
+.device{background:#05080A;}
+.tabpage,.page{
+  background:
+    radial-gradient(130% 46% at 50% -6%,rgba(47,203,94,.14),transparent 62%),
+    radial-gradient(90% 30% at 88% 4%,rgba(255,176,32,.08),transparent 58%),
+    linear-gradient(180deg,#0B120C 0%,#080C08 44%,#060907 100%);
+}
+/* 看剧 feed 全屏视频，不加底色 */
+.tabpage.feed-page{background:none;}
+
+/* 页面标题：金色小方块锚点 */
+.th h1,.page-head h2{letter-spacing:-.4px;}
+.th h1::before,.page-head h2::before{
+  content:"";display:inline-block;width:7px;height:16px;border-radius:3px;margin-right:8px;
+  vertical-align:-2px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold-mid) 55%,var(--gold-low));
+  box-shadow:0 2px 6px rgba(255,176,32,.45),inset 0 1px 1px rgba(255,255,255,.6);
+}
+.sec-t h4{letter-spacing:.2px;}
+.sec-t h4::before{
+  content:"";display:inline-block;width:5px;height:12px;border-radius:2.5px;margin-right:7px;
+  vertical-align:-1px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold-mid) 60%,var(--gold-low));
+  box-shadow:0 1px 4px rgba(255,176,32,.4);
+}
+.sec-t .more{color:#FFD98A;font-weight:800;}
+
+/* 分类 chip：玻璃胶囊，激活 = 绿色立体 */
+.chip{background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);color:var(--t2);}
+.chip.on{
+  background:linear-gradient(180deg,var(--gloss-1),var(--gloss-2) 55%,var(--gloss-3));
+  color:#fff;text-shadow:0 1px 1px rgba(9,64,29,.4);
+  box-shadow:0 4px 12px rgba(27,163,73,.42),inset 0 1px 1px rgba(255,255,255,.5),inset 0 -2px 0 var(--bevel);
+}
+
+/* ==========================================================================
+   2. 卡片材质系统：统一「深绿玻璃 + 金发丝边 + 顶部高光」
+   ========================================================================== */
+.earn-card,.ck-card,.lad-card,.invite-card,.bal-card,.rules,.mini-st,
+.pf-group .list,.inv-hero{
+  position:relative;border-radius:20px;overflow:hidden;
+  background:
+    radial-gradient(110% 120% at 88% -16%,rgba(255,176,32,.22),transparent 55%),
+    radial-gradient(80% 100% at 0% 112%,rgba(47,203,94,.16),transparent 58%),
+    linear-gradient(163deg,var(--card-a) 0%,var(--card-b) 62%,#0B110B 100%);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,.5),
+    inset 0 0 0 1px var(--card-line-soft),
+    inset 0 1.5px 0 rgba(255,255,255,.1);
+}
+/* 顶部金色发丝线（不占布局，纯装饰） */
+.earn-card::before,.ck-card::before,.lad-card::before,.bal-card::before{
+  content:"";position:absolute;top:0;left:22px;right:22px;height:1px;z-index:2;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,214,120,.65) 22%,rgba(255,237,168,.9) 50%,rgba(255,214,120,.65) 78%,transparent);
+}
+
+/* ---- Ganhar 资产卡：金币徽章 + 大号金箔数字（v2 新布局） ---- */
+.ec-row{align-items:center;}
+.ec-main{gap:2px;}
+.ec-coin{
+  flex:0 0 auto;width:56px;height:56px;border-radius:50%;
+  display:grid;place-items:center;
+  background:
+    radial-gradient(120% 120% at 32% 26%,#FFF3C4 0%,#FFD24A 42%,#F5A615 74%,#B96E00 100%);
+  box-shadow:
+    0 8px 20px rgba(245,166,21,.4),
+    inset 0 2px 3px rgba(255,255,255,.75),
+    inset 0 -3px 5px rgba(146,86,0,.55),
+    0 0 0 2.5px rgba(255,196,64,.35);
+}
+.ec-coin svg{width:26px;height:26px;color:#7A4A00;filter:drop-shadow(0 1px 0 rgba(255,244,200,.7));}
+.ec-main .amt{
+  font-size:31px;letter-spacing:-1.1px;line-height:1;
+  background:linear-gradient(180deg,#FFF6C9 8%,#FFDD62 40%,#F0A31C 72%,#C67F00 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 1.5px 1px rgba(96,56,0,.5)) drop-shadow(0 6px 14px rgba(255,176,32,.22));
+}
+.ec-main .amt em{font-size:14px;color:#E9B45C;-webkit-text-fill-color:#E9B45C;}
+.coin-chip{
+  background:linear-gradient(180deg,rgba(255,214,120,.2),rgba(255,176,32,.1));
+  box-shadow:inset 0 0 0 1px rgba(255,214,120,.4);
+  color:#FFDF8F;border-radius:var(--r-full);
+}
+.ec-hint{color:var(--t3);}
+.goal-bar{
+  height:8px;border-radius:5px;background:rgba(255,255,255,.09);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.5);
+}
+.goal-bar>i{
+  background:linear-gradient(90deg,#5CEB8B 0%,#2FCB5E 55%,#189A40 100%);
+  box-shadow:0 0 12px rgba(47,203,94,.6),inset 0 1px 1px rgba(255,255,255,.4);
+}
+.goal-bar>u{background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.15));}
+
+/* ---- 签到卡：立体日格，今日金色发光 ---- */
+.ck-day{
+  border-radius:12px;background:rgba(255,255,255,.04);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),inset 0 1px 0 rgba(255,255,255,.06);
+  transition:transform .15s var(--e-spring);
+}
+.ck-day:active{transform:scale(.93);}
+.ck-day.done{
+  background:linear-gradient(180deg,rgba(92,235,139,.2),rgba(24,154,64,.1));
+  box-shadow:inset 0 0 0 1px rgba(92,235,139,.4),inset 0 1px 0 rgba(255,255,255,.15);
+}
+.ck-day.done .d,.ck-day.done .c{color:#7BF0A4;}
+.ck-day.miss{
+  background:linear-gradient(180deg,rgba(255,214,120,.16),rgba(255,176,32,.06));
+  box-shadow:inset 0 0 0 1px rgba(255,214,120,.45),inset 0 1px 0 rgba(255,255,255,.14);
+}
+.ck-day.miss .d,.ck-day.miss .c{color:#FFDF8F;}
+.ck-day.today{
+  background:linear-gradient(180deg,#FFE79A 0%,#FFC94F 48%,#F0A31C 100%);
+  box-shadow:0 6px 16px rgba(245,166,21,.42),inset 0 1.5px 1px rgba(255,255,255,.7),inset 0 -2px 0 var(--gold-bevel);
+}
+.ck-day.today .d{color:#7A4A00;}
+.ck-day.today .c{color:#5A3200;}
+.ck-day.today .c svg{color:#8F6203;}
+.ck-day.is-dbl{animation:ckPulse 1.6s infinite;}
+@keyframes ckPulse{
+  0%,100%{box-shadow:0 6px 16px rgba(245,166,21,.42),inset 0 1.5px 1px rgba(255,255,255,.7),inset 0 -2px 0 var(--gold-bevel),0 0 0 0 rgba(255,196,64,.5);}
+  50%{box-shadow:0 6px 16px rgba(245,166,21,.42),inset 0 1.5px 1px rgba(255,255,255,.7),inset 0 -2px 0 var(--gold-bevel),0 0 0 6px rgba(255,196,64,0);}
+}
+.ck-hint{color:var(--t3);}
+
+/* ---- 任务行：独立小卡 + 图标瓷砖 + 金色奖励胶囊 ---- */
+.task-list{display:flex;flex-direction:column;gap:8px;}
+.task-row{
+  border-radius:15px;padding:11px 12px;
+  background:
+    radial-gradient(90% 130% at 96% -20%,rgba(255,176,32,.12),transparent 55%),
+    linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.07),0 4px 14px rgba(0,0,0,.28);
+}
+.task-row .ti{
+  width:38px;height:38px;border-radius:12px;
+  background:linear-gradient(155deg,rgba(92,235,139,.22),rgba(24,154,64,.1));
+  box-shadow:inset 0 0 0 1px rgba(92,235,139,.3),inset 0 1px 1px rgba(255,255,255,.2);
+  color:#7BF0A4;
+}
+.task-row .ti svg{width:18px;height:18px;}
+.task-row.done .ti{
+  background:linear-gradient(155deg,rgba(255,214,120,.25),rgba(217,143,8,.12));
+  box-shadow:inset 0 0 0 1px rgba(255,214,120,.4);
+  color:#FFDF8F;
+}
+.task-row .tp{background:rgba(255,255,255,.1);box-shadow:inset 0 1px 2px rgba(0,0,0,.4);}
+.task-row .tp i{background:linear-gradient(90deg,#5CEB8B,#189A40);box-shadow:0 0 8px rgba(47,203,94,.5);}
+.task-row .rw .amt{
+  color:#FFDF8F;font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,rgba(255,214,120,.16),rgba(255,176,32,.06));
+  box-shadow:inset 0 0 0 1px rgba(255,214,120,.35);
+  border-radius:var(--r-full);padding:2px 7px;
+}
+/* 领取按钮：金箔立体胶囊（唯一金色 CTA，和绿色主按钮区分） */
+.task-btn{
+  height:28px;padding:0 13px;border:0;border-radius:var(--r-full);
+  background:linear-gradient(180deg,#FFEDA8 0%,#FFC94F 46%,#F0A31C 100%);
+  color:#5A3200;text-shadow:0 1px 0 rgba(255,244,200,.5);
+  box-shadow:0 4px 12px rgba(245,166,21,.4),inset 0 1.5px 1px rgba(255,255,255,.65),inset 0 -2px 0 var(--gold-bevel);
+  transition:transform .12s var(--e-out),filter .16s;
+}
+.task-btn:active{transform:translateY(1.5px);filter:brightness(1.04);}
+.task-btn.go{
+  background:linear-gradient(180deg,rgba(92,235,139,.16),rgba(24,154,64,.08));
+  color:#7BF0A4;text-shadow:none;
+  box-shadow:inset 0 0 0 1.2px rgba(92,235,139,.5),inset 0 1px 0 rgba(255,255,255,.1);
+}
+.task-btn.go:active{transform:translateY(1px);background:rgba(92,235,139,.22);}
+.task-btn.ok{background:rgba(255,255,255,.06);color:var(--t3);text-shadow:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);}
+
+/* ---- 邀请卡：金边聚光 ---- */
+.invite-card{
+  background:
+    radial-gradient(120% 150% at 85% -20%,rgba(255,176,32,.26),transparent 56%),
+    radial-gradient(80% 110% at 4% 116%,rgba(47,203,94,.16),transparent 58%),
+    linear-gradient(163deg,#1C2C20 0%,#101A11 62%,#0B110B 100%);
+  box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,214,120,.3),inset 0 1.5px 0 rgba(255,255,255,.1);
+}
+.invite-card .iv{
+  width:42px;height:42px;border-radius:14px;
+  background:linear-gradient(155deg,rgba(255,214,120,.26),rgba(217,143,8,.12));
+  box-shadow:inset 0 0 0 1px rgba(255,214,120,.45),inset 0 1px 1px rgba(255,255,255,.25);
+  color:#FFDF8F;
+}
+.invite-card .go{color:#FFDF8F;font-weight:800;}
+.invite-card .it b{color:#FFF6DF;}
+
+/* ---- 广告阶梯卡：号码圆牌 + 立体按钮 ---- */
+.lad-card{
+  background:
+    radial-gradient(120% 140% at 88% -18%,rgba(47,203,94,.18),transparent 56%),
+    linear-gradient(163deg,#182619 0%,#0F170F 62%,#0B110B 100%);
+  box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(92,235,139,.2),inset 0 1.5px 0 rgba(255,255,255,.1);
+}
+.lad-card::before{
+  background:linear-gradient(90deg,transparent,rgba(92,235,139,.55) 22%,rgba(160,255,190,.85) 50%,rgba(92,235,139,.55) 78%,transparent);
+}
+.lad-top b{color:#7BF0A4;}
+.lad-bar{height:6px;border-radius:4px;background:rgba(255,255,255,.09);box-shadow:inset 0 1px 2px rgba(0,0,0,.5);}
+.lad-bar i{
+  background:linear-gradient(90deg,#5CEB8B,#2FCB5E 60%,#FFC02E);
+  box-shadow:0 0 10px rgba(47,203,94,.55),inset 0 1px 1px rgba(255,255,255,.35);
+}
+.lad-tier{
+  background:rgba(255,255,255,.045);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.lad-tier .n{
+  width:24px;height:24px;font-size:10.5px;
+  background:radial-gradient(120% 120% at 32% 26%,#FFF3C4,#FFD24A 46%,#F0A31C 80%);
+  color:#7A4A00;text-shadow:0 1px 0 rgba(255,244,200,.6);
+  box-shadow:0 3px 8px rgba(245,166,21,.35),inset 0 1px 1px rgba(255,255,255,.7),0 0 0 1.5px rgba(255,196,64,.3);
+}
+.lad-tier.is-auto .n{
+  background:radial-gradient(120% 120% at 32% 26%,#B8F7CE,#5CEB8B 46%,#1BA349 80%);
+  color:#053D1C;box-shadow:0 3px 8px rgba(27,163,73,.35),inset 0 1px 1px rgba(255,255,255,.6),0 0 0 1.5px rgba(92,235,139,.35);
+}
+.lad-btn{
+  height:28px;border:0;border-radius:var(--r-full);
+  background:rgba(255,255,255,.06);color:var(--t3);
+  font-variant-numeric:tabular-nums;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
+}
+.lad-btn.is-ready{
+  background:linear-gradient(180deg,#FFEDA8 0%,#FFC94F 46%,#F0A31C 100%);
+  color:#5A3200;text-shadow:0 1px 0 rgba(255,244,200,.5);
+  box-shadow:0 4px 12px rgba(245,166,21,.4),inset 0 1.5px 1px rgba(255,255,255,.65),inset 0 -2px 0 var(--gold-bevel);
+}
+.lad-btn:active:not(:disabled){transform:translateY(1.5px);}
+
+/* ==========================================================================
+   3. 按钮系统：3D 立体棱边（按压下沉，代替旧的纯色平贴）
+   ========================================================================== */
+.btn{border:0;font-weight:800;}
+.btn-gold,.btn-primary{
+  border-radius:var(--r-full);
+  background:linear-gradient(180deg,var(--gloss-1) 0%,var(--gloss-2) 52%,var(--gloss-3) 100%);
+  color:#fff;font-weight:900;letter-spacing:.3px;
+  text-shadow:0 1px 1px rgba(9,64,29,.45);
+  box-shadow:
+    0 5px 0 var(--bevel),
+    0 12px 22px rgba(20,120,52,.44),
+    inset 0 2px 1px rgba(255,255,255,.55),
+    inset 0 -3px 4px rgba(9,84,35,.32);
+}
+.btn-gold b,.btn-primary b{color:#FFF3C4;}
+.btn-gold:active,.btn-primary:active{
+  transform:translateY(3px) scale(.99);
+  box-shadow:0 2px 0 var(--bevel),0 6px 12px rgba(20,120,52,.4),inset 0 2px 1px rgba(255,255,255,.5),inset 0 -2px 3px rgba(9,84,35,.3);
+}
+.btn-primary:disabled,.btn-gold:disabled{filter:saturate(.3) brightness(.72);transform:none;}
+.btn-ghost{
+  background:rgba(255,255,255,.06);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.btn-line{box-shadow:inset 0 0 0 1.2px rgba(92,235,139,.45);color:#7BF0A4;}
+/* Sacar 胶囊：绿色立体小按钮 */
+.btn-sacar,.btn-sacar-sm{
+  border:0;border-radius:var(--r-full);
+  background:linear-gradient(180deg,var(--gloss-1) 0%,var(--gloss-2) 55%,var(--gloss-3) 100%);
+  color:#fff;font-weight:900;text-shadow:0 1px 1px rgba(9,64,29,.45);
+  box-shadow:0 3px 0 var(--bevel),0 8px 16px rgba(20,120,52,.4),inset 0 1.5px 1px rgba(255,255,255,.5);
+  transition:transform .12s var(--e-out);
+}
+.btn-sacar:active,.btn-sacar-sm:active{transform:translateY(2px);}
+.btn-sacar svg,.btn-sacar-sm svg{color:#fff;}
+
+/* ==========================================================================
+   4. 首页 feed：资产区玻璃胶囊 + 底部剧集条按钮立体化
+   ========================================================================== */
+.assets{
+  background:linear-gradient(180deg,rgba(4,10,6,.78) 0%,rgba(4,10,6,.4) 52%,transparent 100%);
+}
+.cash-row{
+  background:rgba(8,16,10,.5);
+  backdrop-filter:blur(14px) saturate(150%);
+  -webkit-backdrop-filter:blur(14px) saturate(150%);
+  border-radius:18px;padding:10px 12px;margin-top:6px;
+  box-shadow:inset 0 0 0 1px rgba(255,214,120,.28),inset 0 1px 0 rgba(255,255,255,.12),0 8px 24px rgba(0,0,0,.44);
+}
+/* 资产卡加了玻璃胶囊变高，心跳计时往下让位，避免和 goal-meta 叠字 */
+.beat{top:calc(var(--stat-h) + 126px);}
+.cash-val{
+  font-size:24px;
+  background:linear-gradient(180deg,#FFF6C9 8%,#FFDD62 42%,#F0A31C 76%,#C67F00 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 1.5px 1px rgba(96,56,0,.55)) drop-shadow(0 4px 12px rgba(255,176,32,.3));
+}
+.cash-val em{color:#E9B45C;-webkit-text-fill-color:#E9B45C;}
+.cash-sub{color:rgba(255,231,154,.75);}
+.cash-lab{color:rgba(255,255,255,.66);}
+/* 顶部进度条与元信息 */
+.assets .goal{margin-top:8px;padding:0 2px;}
+.assets .goal-meta span,.assets .goal-meta b{color:rgba(255,255,255,.85);}
+.assets .goal-meta .eps{color:#FFDF8F;font-weight:800;}
+.epbar{padding-bottom:6px;}
+.ep-pill{
+  background:rgba(8,16,10,.62);
+  backdrop-filter:blur(12px);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 rgba(255,255,255,.14),0 6px 18px rgba(0,0,0,.4);
+}
+.ad-pill{
+  background:linear-gradient(180deg,#FFEDA8 0%,#FFC94F 46%,#F0A31C 100%);
+  color:#5A3200;font-weight:900;text-shadow:0 1px 0 rgba(255,244,200,.5);
+  box-shadow:0 3px 0 var(--gold-bevel),0 8px 18px rgba(245,166,21,.4),inset 0 1.5px 1px rgba(255,255,255,.6);
+}
+.ad-pill:active{transform:translateY(2px);}
+.ad-pill .play-ic{background:rgba(122,74,0,.9);color:#FFDF8F;}
+/* 右侧互动栏：玻璃圆片 */
+.rail-i{
+  background:rgba(8,16,10,.5);backdrop-filter:blur(10px);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);
+}
+/* 收集金币球 & 转盘球：金/绿立体
+   注意：不写 position——11-tokens 的 absolute（right:10 top:stat-h+86）必须保留，
+   v1.13 曾因 position:relative 覆盖导致球跑进文档流盖住进度条 */
+.collect{
+  background:radial-gradient(120% 120% at 32% 26%,#FFF3C4,#FFD24A 46%,#F0A31C 80%);
+  box-shadow:0 10px 24px rgba(245,166,21,.5),inset 0 2px 3px rgba(255,255,255,.7),inset 0 -3px 5px rgba(146,86,0,.5),0 0 0 2.5px rgba(255,196,64,.35);
+}
+/* v1.12：满额也要动起来——收集球小幅弹跳，催用户点 */
+.collect.is-full{animation:collectPop 1s var(--e-spring) infinite;}
+.collect.is-full .ping{animation-duration:1s;border-color:rgba(255,226,138,.95);}
+@keyframes collectPop{
+  0%,100%{transform:scale(1);}
+  36%{transform:scale(1.12);}
+  64%{transform:scale(.98);}
+}
+.feed-wheel{
+  background:linear-gradient(160deg,#5CEB8B,#2FCB5E 52%,#189A40);
+  box-shadow:0 10px 24px rgba(27,163,73,.5),inset 0 2px 3px rgba(255,255,255,.5),inset 0 -3px 5px rgba(9,84,35,.45),0 0 0 2.5px rgba(92,235,139,.3);
+}
+.feed-wheel em{background:linear-gradient(180deg,#FFEDA8,#FFC94F);color:#5A3200;box-shadow:0 2px 6px rgba(0,0,0,.3);}
+
+/* ==========================================================================
+   5. 提现页：余额卡金箔数字 + 档位立体选中
+   ========================================================================== */
+.bal-card{padding:18px 16px 15px;}
+.bal-card .amt{
+  font-size:34px;
+  background:linear-gradient(180deg,#FFF6C9 8%,#FFDD62 40%,#F0A31C 72%,#C67F00 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 1.5px 1px rgba(96,56,0,.5)) drop-shadow(0 6px 14px rgba(255,176,32,.22));
+}
+.bal-card .amt em{color:#E9B45C;-webkit-text-fill-color:#E9B45C;}
+.wm-card{
+  background:rgba(255,255,255,.045);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.wm-card.on{
+  background:linear-gradient(180deg,rgba(92,235,139,.18),rgba(24,154,64,.08));
+  box-shadow:inset 0 0 0 1.6px rgba(92,235,139,.6),inset 0 1px 0 rgba(255,255,255,.16),0 6px 16px rgba(27,163,73,.28);
+}
+.wm-card.on .ok{background:linear-gradient(180deg,#5CEB8B,#1BA349);color:#043D19;}
+.tier{
+  background:rgba(255,255,255,.04);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.06);
+  border-radius:15px;
+}
+.tier .v{
+  background:linear-gradient(180deg,#FFF6C9,#FFDD62 55%,#E9A81C);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  font-weight:900;
+}
+.tier.on{
+  background:linear-gradient(180deg,rgba(255,214,120,.16),rgba(255,176,32,.05));
+  box-shadow:inset 0 0 0 1.8px rgba(255,196,64,.75),inset 0 1px 0 rgba(255,255,255,.2),0 8px 20px rgba(245,166,21,.24);
+}
+.tier.on .st.no{color:#FFDF8F;}
+.tier.locked{opacity:.62;}
+
+/* ==========================================================================
+   6. 底部导航：玻璃 Dock + 金币凸起中央钮（v2 重做）
+   ========================================================================== */
+.tabbar{
+  background:linear-gradient(180deg,rgba(10,20,13,.96) 0%,rgba(6,12,8,.98) 100%);
+  backdrop-filter:blur(20px) saturate(150%);
+  box-shadow:inset 0 1.5px 0 rgba(255,214,120,.2),0 -10px 30px rgba(0,0,0,.5);
+}
+.tab{color:#6E7F70;}
+.tab span{font-weight:800;}
+.tab.on{color:#7BF0A4;text-shadow:0 0 12px rgba(47,203,94,.5);}
+.tab.on::before{
+  top:-1px;width:26px;height:3px;border-radius:0 0 3px 3px;
+  background:linear-gradient(90deg,#5CEB8B,#2FCB5E);
+  box-shadow:0 2px 10px rgba(47,203,94,.85);
+}
+.tab.on svg{filter:drop-shadow(0 0 8px rgba(47,203,94,.6));transform:translateY(-1px) scale(1.06);}
+/* v1.13：中央钮重做成「厚金凸块」——圆角方形金锭 + 实体金棱边 + 双层镜面高光，
+   不再是廉价黄圆球；进度环外移包住整个金块 */
+.tab-mid .midbtn{
+  position:relative;
+  width:56px;height:56px;border-radius:19px;
+  background:linear-gradient(180deg,#FFFBE0 0%,#FFE289 16%,#FFC531 50%,#EFA51B 76%,#CE8200 100%);
+  box-shadow:
+    0 5px 0 #8A5600,
+    0 14px 26px rgba(0,0,0,.55),
+    0 0 0 4px rgba(6,12,8,.99),
+    0 0 0 6px rgba(255,214,120,.5),
+    inset 0 0 0 1.5px rgba(255,250,220,.75),
+    inset 0 3px 1px rgba(255,255,255,.95),
+    inset 0 -8px 12px rgba(140,80,0,.4);
+  transition:transform .14s var(--e-spring),box-shadow .14s;
+}
+.tab-mid .midbtn::before{   /* 顶部高光带 + 斜向镜光，做出金锭的油润感 */
+  content:"";position:absolute;inset:3px;border-radius:16px;pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.28) 34%,rgba(255,255,255,0) 56%),
+    linear-gradient(112deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.55) 39%,rgba(255,255,255,0) 48%);
+  mix-blend-mode:screen;
+}
+/* v1.15：中央钮 = 「赚美元」动效——$ 呼吸 + 金币不断上浮 + 定期扫光，不再放转盘图标 */
+.tab-mid .midbtn .mid-earn{
+  position:absolute;inset:0;border-radius:19px;overflow:hidden;
+  display:grid;place-items:center;z-index:1;
+}
+.mid-earn .usd{
+  font-size:26px;font-weight:900;line-height:1;color:#7A3F00;
+  text-shadow:0 1px 0 rgba(255,250,220,.95),0 -1px 1px rgba(120,70,0,.4);
+  animation:usdPulse 2.4s ease-in-out infinite;
+}
+.mid-earn .mc{
+  position:absolute;bottom:6px;width:9px;height:9px;border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,#FFF6CE,#FFC531 58%,#C98200);
+  box-shadow:0 0 0 1px rgba(120,70,0,.45),0 0 6px rgba(255,214,90,.85);
+  opacity:0;
+}
+.mid-earn .m1{left:10px;animation:coinRise 2.4s ease-in-out infinite;}
+.mid-earn .m2{right:10px;animation:coinRise 2.4s ease-in-out .8s infinite;}
+.mid-earn .m3{left:50%;margin-left:-4.5px;animation:coinRise 2.4s ease-in-out 1.6s infinite;}
+@keyframes coinRise{
+  0%{transform:translateY(7px) scale(.45);opacity:0;}
+  22%{opacity:1;}
+  72%{opacity:1;}
+  100%{transform:translateY(-26px) scale(1);opacity:0;}
+}
+@keyframes usdPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.09);}}
+/* 斜向扫光：一道白亮掠过金锭，强化「金子在流动」的赚钱感 */
+.tab-mid .midbtn::after{
+  content:"";position:absolute;top:-30%;bottom:-30%;left:-65%;width:34%;
+  background:linear-gradient(105deg,rgba(255,255,255,0),rgba(255,255,255,.8) 50%,rgba(255,255,255,0));
+  transform:skewX(-18deg);pointer-events:none;
+  animation:midSheen 3.8s ease-in-out infinite;
+}
+@keyframes midSheen{0%{left:-65%;}52%{left:125%;}100%{left:125%;}}
+.tab-mid .midbtn{overflow:hidden;}   /* 扫光与金币上浮不出金锭边界 */
+.tab-mid .midbtn svg{color:#7A4A00;}
+.tab-mid .midbtn:active{
+  transform:translateY(5px);
+  box-shadow:
+    0 0 0 #8A5600,
+    0 5px 12px rgba(0,0,0,.45),
+    0 0 0 4px rgba(6,12,8,.99),
+    0 0 0 6px rgba(255,214,120,.42),
+    inset 0 0 0 1.5px rgba(255,250,220,.6),
+    inset 0 2px 1px rgba(255,255,255,.7),
+    inset 0 -6px 10px rgba(140,80,0,.45);
+}
+/* v1.14：进度环挪到「看剧领金币」的金币收集球上——进度属于攒币，不属于导航
+   注意：11-tokens.css 的 .collect svg{width:24px} 权重较低，这里用 .collect .col-ring 覆盖 */
+.collect .col-ring{
+  position:absolute;inset:-9px;width:64px;height:64px;
+  transform:rotate(-90deg);pointer-events:none;z-index:2;
+}
+.collect .col-ring .cr-bg{fill:none;stroke:rgba(255,255,255,.22);stroke-width:3.6;}
+.collect .col-ring .cr-fg{
+  fill:none;stroke:#FFE28A;stroke-width:3.6;stroke-linecap:round;
+  stroke-dasharray:182.2;stroke-dashoffset:182.2;
+  filter:drop-shadow(0 0 4px rgba(255,196,64,.9));
+  transition:stroke-dashoffset .45s var(--e-out);
+}
+.collect.has-coins .col-ring .cr-bg{stroke:rgba(255,214,110,.3);}
+.collect .col-ic{position:relative;z-index:1;width:24px;height:24px;color:#5A3300;}
+/* v1.15：数字挪进球心（不再是右上角标）——永远压不到进度环，环也不会压住它 */
+.collect .cn{
+  position:relative;z-index:1;min-width:0;height:auto;padding:0;border-radius:0;
+  background:none;box-shadow:none;
+  font-size:13px;font-weight:900;line-height:1;color:#5A3300;
+  text-shadow:0 1px 0 rgba(255,247,214,.75);
+  font-variant-numeric:tabular-nums;letter-spacing:-.3px;
+}
+.collect.is-full .cn{background:none;box-shadow:none;color:#4A2600;font-size:13px;}
+.collect:not(.is-empty) .col-ic{display:none;}
+.collect.is-empty .cn{display:none;}
+/* 满额：环全亮 + 球跳动（collectPop）+ 左侧「Resgatar」浮标 */
+.collect.is-full{box-shadow:0 0 0 3px rgba(255,214,120,.45),0 10px 26px rgba(245,166,21,.6),inset 0 2px 3px rgba(255,255,255,.75),inset 0 -3px 5px rgba(146,86,0,.5);}
+.collect.is-full .col-ring .cr-fg{stroke:#FFF0BE;filter:drop-shadow(0 0 7px rgba(255,196,64,1));}
+.collect .col-cta{
+  position:absolute;right:calc(100% + 11px);top:50%;z-index:3;
+  transform:translateY(-50%) translateX(8px) scale(.86);
+  padding:4px 10px;border-radius:var(--r-full);white-space:nowrap;pointer-events:none;
+  font-style:normal;font-size:10px;font-weight:900;color:#5A3200;opacity:0;
+  background:linear-gradient(180deg,#FFEDA8,#FFC94F);
+  box-shadow:0 4px 12px rgba(245,166,21,.55),inset 0 1px 0 rgba(255,255,255,.7);
+  transition:opacity .25s,transform .25s var(--e-spring);
+}
+.collect .col-cta::after{
+  content:"";position:absolute;right:-3.5px;top:50%;width:8px;height:8px;margin-top:-4px;rotate:45deg;
+  background:#FFC94F;border-radius:1.5px;
+}
+.collect.is-full .col-cta{opacity:1;transform:translateY(-50%) translateX(0) scale(1);animation:ctaSide 1.1s ease-in-out infinite;}
+@keyframes ctaSide{
+  0%,100%{transform:translateY(-50%) translateX(0) scale(1);}
+  50%{transform:translateY(-50%) translateX(-4px) scale(1);}
+}
+.tab .dot{background:#FFC02E;box-shadow:0 0 0 2px rgba(6,12,8,.95),0 0 8px rgba(255,176,32,.8);}
+
+/* ==========================================================================
+   7. 弹窗：金边玻璃 + 顶部高光 + 金箔标题
+   ========================================================================== */
+.dlg{
+  border-radius:26px;
+  background:linear-gradient(178deg,rgba(26,58,36,.98) 0%,rgba(13,32,20,.98) 100%);
+  box-shadow:
+    0 24px 64px rgba(0,0,0,.68),
+    inset 0 0 0 2px var(--dlg-gold),
+    inset 0 2.5px 0 rgba(255,255,255,.14),
+    0 0 34px rgba(255,176,32,.16);
+}
+.dlg h4{color:#fff;letter-spacing:-.2px;}
+.dlg p{color:rgba(233,244,236,.8);}
+.dlg .fine{color:rgba(233,244,236,.52);}
+.dlg-x{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);}
+.dlg-art{
+  background:
+    radial-gradient(90% 120% at 50% 0%,rgba(255,176,32,.34),transparent 66%),
+    radial-gradient(70% 90% at 12% 100%,rgba(47,203,94,.24),transparent 60%),
+    #10281A;
+}
+#mWheel h4,#mNewbie h4,#mDone h4{
+  font-size:23px;font-weight:900;letter-spacing:.4px;
+  background:linear-gradient(180deg,#FFF6C9 6%,#FFDD62 36%,#F5A615 64%,#B96E00 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 1.5px 0 rgba(96,56,0,.6)) drop-shadow(0 5px 12px rgba(0,0,0,.45));
+}
+/* 余额不足：奶油卡（保持竞品同款） */
+#mShort .dlg{
+  background:linear-gradient(178deg,#FFF8E6 0%,#FFEDC4 100%);
+  box-shadow:0 24px 64px rgba(0,0,0,.6),inset 0 0 0 2.5px #F2B93C,inset 0 2.5px 0 rgba(255,255,255,.8),0 0 30px rgba(255,176,32,.2);
+}
+#mShort h4{color:#0E5A2C;font-size:21px;font-weight:900;letter-spacing:-.3px;}
+#mShort p{color:#54705F;}
+#mShort .fine{color:#A98F5E;}
+#mShort .reward-hero{
+  background:radial-gradient(120% 120% at 34% 26%,#E9F7EC,#CDEBD5 60%,#B7DFC4) !important;
+  box-shadow:0 10px 26px rgba(20,90,44,.18),inset 0 1px 2px rgba(255,255,255,.8) !important;
+}
+#mShort .reward-hero svg{color:#149A3E !important;}
+/* 奶油卡上的次按钮：暖沙色（原来的深灰 panel-3 在奶油底上发黑） */
+#mShort .btn-dim{
+  background:linear-gradient(180deg,#E8DCC0,#D8C9A6);
+  color:#6B5A32;text-shadow:none;
+  box-shadow:inset 0 0 0 1px rgba(122,98,52,.3),inset 0 1px 0 rgba(255,255,255,.6);
+}
+#mShort .reward-hero::after{
+  content:"🪙";position:absolute;right:6px;bottom:4px;font-size:26px;z-index:2;
+  filter:drop-shadow(0 4px 8px rgba(120,80,0,.35));pointer-events:none;
+}
+/* 输入框：玻璃 + 金色聚焦 */
+.field{
+  background:rgba(255,255,255,.06);
+  box-shadow:inset 0 0 0 1.2px rgba(255,255,255,.14),inset 0 1px 2px rgba(0,0,0,.3);
+  border-radius:14px;color:#fff;
+}
+.field:focus{box-shadow:inset 0 0 0 1.6px rgba(255,196,64,.85),0 0 14px rgba(255,176,32,.25);}
+
+/* ==========================================================================
+   8. 转盘（保留绿金盘，灯光微调）
+   ========================================================================== */
+.wheel-ring{
+  box-shadow:0 0 0 9px #E8A419,0 0 0 11.5px #8F6203,
+             0 18px 44px rgba(0,0,0,.6),inset 0 0 26px rgba(0,50,18,.45);
+}
+/* v1.21：刻度线从静止的 .wheel-ring 挪进转盘内部（.wheel-ticks，由 renderWheelFace 生成），
+   这样它跟色带、金额在同一个旋转坐标系里，盘停下时不会跟分隔位错开。 */
+.wheel-ticks{
+  position:absolute;inset:-9px;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(from 2deg,rgba(255,248,212,.95) 0 3deg,rgba(255,248,212,0) 3deg 18deg);
+  -webkit-mask:radial-gradient(circle closest-side,transparent calc(100% - 8.5px),#000 calc(100% - 7.5px));
+          mask:radial-gradient(circle closest-side,transparent calc(100% - 8.5px),#000 calc(100% - 7.5px));
+  filter:drop-shadow(0 0 3px rgba(255,230,150,.9));
+}
+.wheel .seg b{color:#fff;text-shadow:0 1.5px 3px rgba(6,54,22,.85);font-size:12.5px;}
+.wheel .seg.is-hi b{color:#5A3200;text-shadow:0 1px 2px rgba(255,255,255,.5);}
+.wheel .seg i{background:rgba(255,214,110,.5);}
+.wheel-hub{box-shadow:0 6px 18px rgba(0,0,0,.5),inset 0 1px 2px rgba(255,255,255,.7),0 0 0 5px #B9820B;}
+.wheel-ptr{border-top-color:#FFC02E;}
+.wheel-ptr::after{background:#FFC02E;}
+.wheel-out .v{color:#FFD24A;}
+.wheel-ticker .tk-track span{color:#FFDF8F;}
+
+/* ==========================================================================
+   9. 启动页 / 品牌 / 杂项
+   ========================================================================== */
+.splash{
+  background:
+    radial-gradient(90% 60% at 50% 36%,rgba(47,203,94,.24),transparent 64%),
+    radial-gradient(70% 50% at 80% 88%,rgba(255,176,32,.16),transparent 62%),
+    #060A07;
+}
+/* v1.12：新 logo = 金币 + 播放三角（看剧赚金币），去掉方块底，金币即 logo */
+.splash .logo{
+  width:132px;height:132px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,196,64,.2),rgba(255,196,64,.05) 62%,transparent 76%);
+  box-shadow:none;
+  animation:logoFloat 2.6s ease-in-out .7s infinite;
+}
+@keyframes logoFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.splash .logo::after{border-radius:50%;inset:-10px;}
+.splash .logo svg{width:96px;height:96px;}
+.splash .nm{
+  font-size:26px;font-weight:900;letter-spacing:-.4px;
+  background:linear-gradient(180deg,#FFF6C9 6%,#FFDD62 38%,#F5A615 68%,#C67F00 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 10px rgba(255,176,32,.28));
+}
+.splash .sl{color:rgba(233,244,236,.62);}
+.splash .ld i{
+  background:linear-gradient(90deg,#2FCB5E,#FFC02E 70%,#FFB020);
+  box-shadow:0 0 12px rgba(47,203,94,.75);
+}
+.big-heart{color:#2FCB5E;filter:drop-shadow(0 6px 20px rgba(47,203,94,.6));}
+.dcard .cov .hot{
+  background:linear-gradient(135deg,#FFD24A,#FFA51A);
+  box-shadow:0 2px 8px rgba(255,165,26,.4);}
+.bottomsheet .bell{
+  background:linear-gradient(150deg,#5CEB8B,#2FCB5E 60%,#128A3C);
+  box-shadow:0 10px 26px rgba(27,163,73,.4),inset 0 1px 2px rgba(255,255,255,.4);}
+.cd{background:rgba(255,176,32,.14);color:#FFD98A;}
+.pm-seg button.on{box-shadow:0 4px 14px rgba(27,163,73,.3);}
+.pl-prog i{background:linear-gradient(90deg,#2FCB5E,#FFC02E);}
+.lp-wall{
+  background:
+    radial-gradient(80% 50% at 20% 8%,rgba(20,90,44,.55),transparent 62%),
+    radial-gradient(70% 44% at 92% 24%,rgba(255,176,32,.3),transparent 60%),
+    radial-gradient(90% 60% at 50% 100%,rgba(14,60,30,.6),transparent 66%),
+    linear-gradient(170deg,#0F1D13 0%,#0A110C 58%,#070B08 100%);}
+.lp-cc{background:linear-gradient(150deg,#5CEB8B,#2FCB5E 56%,#128A3C);}
+.is-target .lp-ic{box-shadow:0 8px 22px rgba(27,163,73,.5),0 0 0 2px rgba(255,255,255,.22),inset 0 1px 0 rgba(255,255,255,.3);}
+.pf-ava{
+  background:linear-gradient(150deg,#5CEB8B,#2FCB5E 58%,#128A3C);
+  box-shadow:0 8px 22px rgba(47,203,94,.34),inset 0 1px 2px rgba(255,255,255,.4);}
+.pf-head{
+  background:
+    radial-gradient(120% 100% at 12% -10%,rgba(47,203,94,.2),transparent 58%),
+    linear-gradient(180deg,#111611,#0B0D0B);}
+.row:active{background:rgba(255,255,255,.05);}
+.tag{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);}
+.pl-sacar{
+  background:rgba(8,16,10,.55);backdrop-filter:blur(12px);
+  box-shadow:inset 0 0 0 1px rgba(255,214,120,.35),inset 0 1px 0 rgba(255,255,255,.15),0 8px 20px rgba(0,0,0,.44);
+}
+
+/* ==========================================================================
+   v1.16 交互基础件：统一锁 / 广告失败态 / 可领取跃迁
+   ========================================================================== */
+
+/* 走了 guard() 的按钮在异步期间统一降透明度、不吃点击 */
+.is-locked{pointer-events:none;opacity:.62;transition:opacity .15s;}
+
+/* 广告拉不到素材：整块舞台换成可操作的三段式，而不是把用户干晾在加载圈里 */
+#adPlay .ad-fail{
+  position:absolute;inset:0;z-index:6;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;padding:36px 32px;text-align:center;
+  background:radial-gradient(120% 90% at 50% 28%,rgba(22,38,28,.97),rgba(7,12,8,.99));
+}
+#adPlay.failed .ad-fail{display:flex;}
+#adPlay.failed .ad-frame,
+#adPlay.failed .ad-bottom{opacity:.12;}
+#adPlay.failed .ad-top{opacity:0;pointer-events:none;}
+#adPlay .ad-fail .ic{width:52px;height:52px;color:#FFC94F;opacity:.92;}
+#adPlay .ad-fail h4{margin:2px 0 0;font-size:15px;font-weight:800;color:#fff;letter-spacing:-.2px;}
+#adPlay .ad-fail .fine{margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,.58);}
+#adPlay .ad-fail .acts{display:flex;gap:10px;margin-top:12px;width:100%;max-width:286px;}
+#adPlay .ad-fail .acts .btn{flex:1;min-height:44px;font-size:13px;}
+
+/* 倒计时归零：关闭钮从「锁着的 ×」跃迁成「绿色的领取」，否则用户不知道要点哪 */
+#adPlay .ad-close.ready{
+  width:40px;height:40px;
+  background:linear-gradient(180deg,#5CEB8B,#2FCB5E);
+  box-shadow:0 0 0 3px rgba(47,203,94,.26),0 6px 18px rgba(47,203,94,.45);
+  animation:readyPop .62s var(--e-spring) infinite alternate;
+}
+#adPlay .ad-close.ready .ring{opacity:0;}
+#adPlay .ad-close.ready .cd-num{color:#06341A;font-size:18px;line-height:1;}
+@keyframes readyPop{from{transform:scale(1);}to{transform:scale(1.1);}}
+
+/* 冻结金币提示：有冻结才出现，说明「能看到但不是现在能提」 */
+.lock-note{
+  display:inline-flex;align-items:center;gap:5px;margin-top:6px;
+  padding:3px 8px;border-radius:var(--r-full);
+  font-size:10.5px;font-weight:700;line-height:1.35;color:#8A5600;
+  background:linear-gradient(180deg,rgba(255,214,120,.22),rgba(255,176,32,.14));
+  box-shadow:inset 0 0 0 1px rgba(255,196,64,.34);
+}
+.lock-note svg{width:11px;height:11px;flex:0 0 11px;opacity:.9;}
+.lock-note b{font-weight:900;font-variant-numeric:tabular-nums;}
+.lock-note.wd{
+  display:flex;width:100%;margin-top:10px;padding:9px 11px;border-radius:10px;
+  font-size:11.5px;text-align:left;
+}
+.lock-note.wd svg{width:13px;height:13px;flex:0 0 13px;}
+
+/* 首页余额旁的小锁：不占一行，避免把下面的目标进度挤变形 */
+.lock-badge{
+  display:inline-block;width:13px;height:13px;margin-left:5px;vertical-align:-1px;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFC94F' stroke-width='2.6' stroke-linecap='round'><rect x='4.5' y='10' width='15' height='10.5' rx='2.6'/><path d='M8.2 10V7.2a3.8 3.8 0 0 1 7.6 0V10'/></svg>") center/contain no-repeat;
+  opacity:.92;
+}

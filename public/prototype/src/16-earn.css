@@ -1,0 +1,478 @@
+/* ==========================================================================
+   v1.5 · 任务中心 / 金币 / 签到 / 邀请 / 提现加速
+   入口：Tab 3 Ganhar（任务列表）→ 二级页 sac（提现）/ invite（邀请）
+   数值一律由 JS 渲染，样式里不出现任何金额或天数
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- 资产卡 */
+.earn-card{
+  position:relative;border-radius:var(--r-xl);overflow:hidden;padding:15px 15px 13px;
+  background:
+    radial-gradient(120% 130% at 90% -18%,rgba(255,176,32,.3),transparent 58%),
+    radial-gradient(90% 120% at 4% 116%,rgba(255,59,92,.22),transparent 60%),
+    linear-gradient(158deg,#1E1B22 0%,#15131A 54%,#101016 100%);
+  box-shadow:0 14px 34px rgba(0,0,0,.46),inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.ec-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative;z-index:1;}
+.ec-main{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.ec-main .lab{font-size:9.5px;font-weight:700;color:rgba(255,255,255,.58);letter-spacing:.8px;text-transform:uppercase;}
+.ec-main .amt{display:flex;align-items:flex-end;gap:4px;font-size:30px;font-weight:800;letter-spacing:-1.2px;
+  line-height:1.06;font-variant-numeric:tabular-nums;text-shadow:0 4px 22px rgba(255,176,32,.3);}
+.ec-main .amt em{font-style:normal;font-size:13px;font-weight:800;color:rgba(255,255,255,.55);margin-bottom:5px;}
+.btn-sacar-sm{height:32px;padding:0 12px;border-radius:var(--r-full);display:inline-flex;align-items:center;gap:5px;
+  font-size:11.5px;font-weight:800;color:#3A1B00;background:linear-gradient(180deg,#FFC65C,#F0A013);
+  box-shadow:0 6px 18px rgba(240,160,19,.3),inset 0 1px 0 rgba(255,255,255,.5);}
+.btn-sacar-sm svg{width:13px;height:13px;}
+.btn-sacar-sm:active{transform:scale(.97);}
+
+.ec-coins{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:11px;position:relative;z-index:1;}
+.coin-chip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px 0 6px;border-radius:var(--r-full);
+  background:rgba(255,176,32,.14);box-shadow:inset 0 0 0 1px rgba(255,176,32,.28);
+  font-size:11px;font-weight:800;color:#FFD176;font-variant-numeric:tabular-nums;}
+.coin-chip svg{width:14px;height:14px;color:var(--gold);}
+.coin-chip b{font-size:12.5px;}
+.ec-hint{font-size:9.5px;color:var(--t3);}
+.ec-goal{margin-top:11px;position:relative;z-index:1;}
+.ec-goal .goal-meta{display:flex;justify-content:space-between;font-size:9.5px;color:var(--t3);margin-top:5px;
+  font-variant-numeric:tabular-nums;}
+.ec-goal .goal-meta b{color:var(--t2);font-weight:800;}
+
+/* ---------------------------------------------------------------- 签到 */
+.ck-card{padding:12px 12px 12px;border-radius:var(--r-l);background:var(--panel);
+  box-shadow:inset 0 0 0 1px var(--line);}
+.ck-days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.ck-day{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0 6px;
+  border-radius:9px;background:#17171D;box-shadow:inset 0 0 0 1px var(--line);}
+.ck-day .d{font-size:8.5px;font-weight:700;color:var(--t4);letter-spacing:.2px;}
+.ck-day .c{font-size:9.5px;font-weight:800;color:var(--t3);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:1px;}
+.ck-day .c svg{width:9px;height:9px;color:var(--gold);}
+.ck-day.done{background:rgba(34,197,94,.1);box-shadow:inset 0 0 0 1px rgba(34,197,94,.3);}
+.ck-day.done .d,.ck-day.done .c{color:#5BE38F;}
+.ck-day.done .c svg{color:#5BE38F;}
+.ck-day.miss{background:rgba(255,176,32,.08);box-shadow:inset 0 0 0 1px rgba(255,176,32,.26);}
+.ck-day.miss .d,.ck-day.miss .c{color:var(--gold);}
+.ck-day.today{background:var(--brand-soft);box-shadow:inset 0 0 0 1.6px var(--brand);}
+.ck-day.today .d{color:#FF9DAE;}
+.ck-day.today .c{color:#fff;}
+.ck-day .big{font-size:10px;font-weight:800;color:#FFD176;line-height:1;}
+.ck-acts{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.ck-acts .btn[disabled]{opacity:.42;}
+
+/* 可点的格子：补签（漏签日）与翻倍（今日已签未翻倍）
+   视觉上给一条金色内描边 + 文字标签，替代原来底部两个脱节的按钮 */
+.ck-day.is-fix,.ck-day.is-dbl{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.ck-day.is-fix{animation:ckFixPulse 2.4s ease-in-out infinite;}
+.ck-day.is-dbl{box-shadow:inset 0 0 0 1.6px rgba(255,176,32,.75);}
+.ck-day .c.tag{font-size:7.5px;font-weight:800;letter-spacing:.2px;gap:2px;}
+.ck-day .c.tag svg{width:8px;height:8px;}
+.ck-day.is-fix .c.tag{color:var(--gold);}
+.ck-day.is-dbl .c.tag{color:#FFD176;}
+.ck-day.is-dbl{animation:ckDblPulse 2.2s ease-in-out infinite;}
+.ck-day .c em{font-style:normal;font-size:8px;font-weight:800;color:#5BE38F;margin-left:1px;}
+.ck-day:active{transform:scale(.95);}
+@keyframes ckFixPulse{0%,100%{box-shadow:inset 0 0 0 1px rgba(255,176,32,.3);}
+  50%{box-shadow:inset 0 0 0 1.6px rgba(255,176,32,.8);}}
+@keyframes ckDblPulse{0%,100%{box-shadow:inset 0 0 0 1.6px rgba(255,176,32,.7);}
+  50%{box-shadow:inset 0 0 0 1.6px rgba(255,209,118,1),0 0 10px rgba(255,176,32,.35);}}
+.ck-hint{margin-top:8px;font-size:9.5px;color:var(--t4);text-align:center;line-height:1.3;}
+.ck-hint b{color:var(--gold);font-weight:800;}
+
+/* 签到翻倍弹窗 */
+.ckd-hero{width:54px;height:54px;margin:2px auto 8px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 35% 30%,#3DDC84,#1AA45C 70%);
+  box-shadow:0 0 0 6px rgba(34,197,94,.12),0 8px 18px rgba(26,164,92,.35);}
+.ckd-hero svg{width:26px;height:26px;color:#fff;}
+.ckd-hero.is-fix{background:radial-gradient(circle at 35% 30%,#FFD176,#E39A18 70%);
+  box-shadow:0 0 0 6px rgba(255,176,32,.12),0 8px 18px rgba(227,154,24,.35);}
+.ckd-hero.is-fix svg{color:#2A1A00;width:24px;height:24px;}
+#ckFixAd svg{width:13px;height:13px;}
+.ckd-val{margin-left:5px;font-weight:900;font-variant-numeric:tabular-nums;}
+
+/* ---------------------------------------------------------------- 每日任务 */
+.task-list{display:flex;flex-direction:column;gap:6px;}
+.task-row{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:var(--r-m);
+  background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);}
+.task-row .ti{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;
+  background:rgba(255,59,92,.12);color:#FF7A92;}
+.task-row .ti svg{width:15px;height:15px;}
+.task-row.done .ti{background:rgba(34,197,94,.12);color:#4ADE80;}
+.task-row .tm{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.task-row .tm b{font-size:12px;font-weight:700;color:var(--t1);line-height:1.2;}
+.task-row .tm span{font-size:9.5px;color:var(--t3);font-variant-numeric:tabular-nums;}
+.task-row .tp{height:3px;border-radius:2px;background:#24242C;overflow:hidden;margin-top:1px;}
+.task-row .tp i{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#FF3B5C,#FFB020);width:0;}
+.task-row .rw{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:0 0 auto;}
+.task-row .rw .amt{font-size:11.5px;font-weight:800;color:#FFD176;font-variant-numeric:tabular-nums;
+  display:flex;align-items:center;gap:2px;}
+.task-row .rw .amt svg{width:11px;height:11px;color:var(--gold);}
+.task-btn{height:26px;padding:0 10px;border-radius:var(--r-full);font-size:10.5px;font-weight:800;
+  background:linear-gradient(180deg,#FFC65C,#F0A013);color:#3A1B00;box-shadow:0 4px 12px rgba(240,160,19,.24);}
+.task-btn.dim{background:var(--panel-3);color:var(--t3);box-shadow:none;}
+.task-btn.ok{background:rgba(34,197,94,.14);color:#4ADE80;box-shadow:none;}
+/* 未达标：可点的「去完成」，描边样式，与可领取的金色实心按钮区分开 */
+.task-btn.go{background:transparent;color:#FFD176;box-shadow:inset 0 0 0 1px rgba(255,176,32,.5);}
+.task-btn.go:active{background:rgba(255,176,32,.12);}
+/* 点「去完成」后把目标卡片闪一下，视线能跟上 */
+.ck-card.is-hl{animation:ckHl 1.6s ease-out;}
+@keyframes ckHl{0%{box-shadow:inset 0 0 0 1px rgba(255,176,32,.2);}
+  18%{box-shadow:inset 0 0 0 2px rgba(255,176,32,.95),0 0 24px rgba(255,176,32,.35);}
+  100%{box-shadow:inset 0 0 0 1px rgba(255,176,32,.2);}}
+
+/* ---------------------------------------------------------------- 邀请入口 */
+.invite-card{display:flex;align-items:center;gap:10px;width:100%;margin-top:14px;padding:13px 13px;
+  border-radius:var(--r-l);text-align:left;position:relative;overflow:hidden;
+  background:linear-gradient(120deg,#2A1418 0%,#1B1418 58%,#161219 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,59,92,.24);}
+.invite-card::after{content:"";position:absolute;right:-26px;top:-26px;width:96px;height:96px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,59,92,.28),transparent 66%);pointer-events:none;}
+.invite-card .iv{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;
+  background:rgba(255,59,92,.16);color:#FF7A92;}
+.invite-card .iv svg{width:17px;height:17px;}
+.invite-card .it{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;position:relative;z-index:1;}
+.invite-card .it b{font-size:12.5px;font-weight:800;}
+.invite-card .it span{font-size:10px;color:var(--t3);line-height:1.4;}
+.invite-card .go{font-size:10.5px;font-weight:800;color:var(--gold);position:relative;z-index:1;}
+
+/* ---------------------------------------------------------------- 广告阶梯卡（v1.9.7） */
+/* 三档写在卡里，不再有「解锁转盘」那半句 —— 转盘是常驻的 20 金币玩法 */
+.lad-card{margin-top:14px;padding:13px 13px 11px;border-radius:var(--r-l);
+  background:linear-gradient(180deg,rgba(255,176,32,.09),rgba(255,176,32,.03));
+  box-shadow:inset 0 0 0 1px rgba(255,176,32,.2);}
+.lad-top{display:flex;align-items:center;justify-content:space-between;font-size:11px;}
+.lad-top b{font-weight:800;color:#FFD176;font-size:12px;}
+.lad-top span{font-variant-numeric:tabular-nums;color:var(--t2);font-weight:700;font-size:10.5px;}
+.lad-bar{height:5px;border-radius:3px;background:#26262E;overflow:hidden;margin:8px 0 10px;}
+.lad-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#FFC44D,#FFB020 62%,#FF7A3C);
+  transition:width .35s cubic-bezier(.22,.61,.36,1);}
+.lad-tiers{display:flex;flex-direction:column;gap:6px;}
+.lad-tier{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:11px;
+  background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);}
+.lad-tier .n{flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  font-size:10px;font-weight:900;font-variant-numeric:tabular-nums;color:#FFD176;
+  background:rgba(255,176,32,.14);box-shadow:inset 0 0 0 1px rgba(255,176,32,.28);}
+.lad-tier.is-auto .n{color:#4ADE80;background:rgba(34,197,94,.14);box-shadow:inset 0 0 0 1px rgba(34,197,94,.3);}
+.lad-tier .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.lad-tier .tx b{font-size:12px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;}
+.lad-tier .tx span{font-size:9px;color:var(--t3);line-height:1.35;}
+.lad-tier .st{font-size:9.5px;font-weight:800;color:var(--t3);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.lad-tier .st.is-done{color:#4ADE80;}
+.lad-btn{flex:0 0 auto;height:26px;padding:0 10px;border:0;border-radius:8px;
+  background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
+  font-size:9.5px;font-weight:800;color:var(--t3);font-variant-numeric:tabular-nums;
+  font-family:inherit;cursor:pointer;transition:transform .12s;}
+.lad-btn.is-ready{background:linear-gradient(180deg,#FFD176,#FFB020);color:#3A1F00;
+  box-shadow:0 4px 12px rgba(255,176,32,.3);}
+.lad-btn:disabled{cursor:default;}
+.lad-btn:active:not(:disabled){transform:scale(.95);}
+.lad-note{margin-top:9px;font-size:9px;color:var(--t4);line-height:1.45;}
+
+/* ---------------------------------------------------------------- 领金币弹窗 */
+.claim-hero{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin:2px 0 10px;}
+.claim-pile{position:relative;width:88px;height:74px;display:grid;place-items:center;}
+.claim-pile .c1,.claim-pile .c2,.claim-pile .c3{position:absolute;width:42px;height:42px;border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,#FFE7A8,#FFB020 58%,#C97D00 100%);
+  box-shadow:0 6px 16px rgba(201,125,0,.4),inset 0 -3px 6px rgba(120,70,0,.35);}
+.claim-pile .c1{transform:translate(-16px,8px) rotate(-12deg);opacity:.75;}
+.claim-pile .c2{transform:translate(16px,8px) rotate(12deg);opacity:.75;}
+.claim-pile .c3{transform:translate(0,-8px);}
+.claim-pile .c3::after{content:"C";position:absolute;inset:0;display:grid;place-items:center;
+  font-size:19px;font-weight:900;color:#8A5200;}
+.claim-amt{display:flex;flex-direction:column;align-items:flex-start;}
+.claim-amt .v{font-size:30px;font-weight:800;letter-spacing:-1.2px;color:#FFD176;font-variant-numeric:tabular-nums;line-height:1.1;}
+.claim-amt .u{font-size:10.5px;color:var(--t3);font-weight:700;letter-spacing:.4px;text-transform:uppercase;}
+.claim-duo{display:flex;flex-direction:column;gap:7px;}
+.claim-duo .btn{height:42px;font-size:12.5px;}
+.claim-duo .sub{font-size:9.5px;color:var(--t3);text-align:center;margin-top:2px;}
+
+/* ---------------------------------------------------------------- 金币飘字 */
+.coin-pop{position:absolute;z-index:60;font-size:13px;font-weight:800;color:#FFD176;
+  text-shadow:0 2px 10px rgba(0,0,0,.6);pointer-events:none;
+  animation:coinPop 1.1s var(--e-out) forwards;}
+@keyframes coinPop{
+  0%{opacity:0;transform:translateY(6px) scale(.86);}
+  22%{opacity:1;transform:translateY(-6px) scale(1);}
+  100%{opacity:0;transform:translateY(-46px) scale(1);}
+}
+
+/* ---------------------------------------------------------------- 提现页（二级页） */
+.page[data-page="sac"] .wallet{padding:2px 14px 26px;}
+.page[data-page="sac"] .page-body{background:var(--bg);}
+.sac-tools{display:flex;align-items:center;justify-content:space-between;margin-top:14px;}
+.sac-tools .link{font-size:10.5px;font-weight:700;color:var(--t3);display:inline-flex;align-items:center;gap:4px;}
+.sac-tools .link svg{width:12px;height:12px;}
+
+/* ---------------------------------------------------------------- 提现加速 */
+.accel{margin-top:16px;padding:13px 13px 12px;border-radius:var(--r-l);background:var(--panel);
+  box-shadow:inset 0 0 0 1px var(--line);}
+.accel-hd{display:flex;align-items:baseline;justify-content:space-between;}
+.accel-hd b{font-size:12.5px;font-weight:800;}
+.accel-hd span{font-size:10.5px;color:var(--t3);font-variant-numeric:tabular-nums;}
+.accel-days{display:flex;align-items:flex-end;gap:5px;margin:7px 0 2px;}
+.accel-days .n{font-size:30px;font-weight:800;letter-spacing:-1.4px;line-height:1;color:#FFD176;font-variant-numeric:tabular-nums;}
+.accel-days .u{font-size:10.5px;color:var(--t2);font-weight:700;padding-bottom:3px;}
+.accel-days .eta{font-size:9.5px;color:var(--t3);margin-left:auto;padding-bottom:3px;}
+.accel-bar{height:6px;border-radius:3px;background:#24242C;overflow:hidden;margin:8px 0 10px;}
+.accel-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#FFB020,#22C55E);width:0;
+  transition:width .5s var(--e-out);}
+.accel-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px solid rgba(255,255,255,.05);}
+.accel-row .ai{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto;
+  background:rgba(255,176,32,.12);color:var(--gold);}
+.accel-row .ai svg{width:14px;height:14px;}
+.accel-row .am{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.accel-row .am b{font-size:11.5px;font-weight:700;}
+.accel-row .am span{font-size:9.5px;color:var(--t3);font-variant-numeric:tabular-nums;}
+.accel-row .btn{height:27px;padding:0 10px;font-size:10.5px;}
+
+/* ---------------------------------------------------------------- 银行表单 */
+.pm-seg{display:flex;gap:6px;padding:4px;border-radius:var(--r-m);background:var(--panel-3);margin-bottom:16px;}
+.pm-seg button{flex:1;height:32px;border-radius:9px;font-size:11.5px;font-weight:800;color:var(--t3);
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;}
+.pm-seg button.on{background:var(--brand);color:#fff;box-shadow:0 4px 14px rgba(255,59,92,.3);}
+.pm-seg button svg{width:13px;height:13px;}
+.fld-lb{display:block;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.4px;
+  text-transform:uppercase;margin:0 0 5px;}
+.fld{margin-bottom:13px;}
+.fld-row{display:flex;gap:9px;}
+.fld-row .fld{flex:1;}
+.bank-note{display:flex;align-items:flex-start;gap:7px;padding:10px 11px;border-radius:var(--r-m);
+  background:rgba(255,176,32,.07);box-shadow:inset 0 0 0 1px rgba(255,176,32,.18);
+  font-size:10px;line-height:1.55;color:var(--t2);}
+.bank-note svg{width:14px;height:14px;flex:0 0 14px;color:var(--gold);margin-top:1px;}
+select.field{appearance:none;-webkit-appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,#7A7A88 50%),linear-gradient(135deg,#7A7A88 50%,transparent 50%);
+  background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px;}
+
+/* ---------------------------------------------------------------- 邀请页 */
+.inv-hero{position:relative;border-radius:var(--r-xl);overflow:hidden;padding:16px 15px 15px;
+  background:radial-gradient(120% 130% at 86% -14%,rgba(255,59,92,.32),transparent 62%),
+             linear-gradient(150deg,#241419 0%,#17131A 60%,#101016 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,59,92,.22);}
+.inv-hero h3{margin:0 0 4px;font-size:15px;font-weight:800;}
+.inv-hero p{margin:0;font-size:10.5px;color:var(--t2);line-height:1.55;}
+.inv-code{display:flex;align-items:center;gap:8px;margin-top:12px;}
+.inv-code .cd{flex:1;height:40px;border-radius:var(--r-m);display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.34);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
+  font-family:var(--num);font-size:15px;font-weight:800;letter-spacing:2.4px;color:#FFD176;}
+.inv-code .btn{height:40px;padding:0 14px;font-size:11.5px;}
+.inv-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px;}
+.inv-stat div{padding:9px 8px;border-radius:11px;background:rgba(255,255,255,.045);text-align:center;}
+.inv-stat b{display:block;font-size:16px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;}
+.inv-stat span{font-size:8.5px;color:var(--t3);letter-spacing:.2px;}
+.inv-steps{display:flex;flex-direction:column;gap:8px;margin-top:2px;}
+.inv-step{display:flex;align-items:flex-start;gap:9px;padding:10px 11px;border-radius:var(--r-m);
+  background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);}
+.inv-step .n{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--brand-soft);color:#FF8FA2;font-size:10.5px;font-weight:800;}
+.inv-step .tx b{display:block;font-size:11.5px;font-weight:700;}
+.inv-step .tx span{font-size:9.5px;color:var(--t3);line-height:1.5;}
+.inv-fr{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--r-m);
+  background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);margin-top:6px;}
+.inv-fr .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(150deg,#3A3A46,#26262E);font-size:11px;font-weight:800;color:var(--t2);}
+.inv-fr .fm{flex:1;min-width:0;}
+.inv-fr .fm b{display:block;font-size:11.5px;font-weight:700;}
+.inv-fr .fm span{font-size:9.5px;color:var(--t3);}
+.inv-fr .st{font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:var(--r-full);}
+.inv-fr .st.ok{background:rgba(34,197,94,.13);color:#4ADE80;}
+.inv-fr .st.wait{background:rgba(255,176,32,.13);color:var(--gold);}
+
+/* ---------------------------------------------------------------- 转盘奖品 */
+.wheel-out .brinde{font-size:15px;font-weight:800;color:#FFD176;line-height:1.2;}
+.wheel-out .fine{margin-top:3px;font-size:9.5px;color:var(--t3);}
+.prize-art{width:96px;height:76px;margin:0 auto 10px;display:grid;place-items:center;border-radius:16px;
+  background:radial-gradient(circle at 50% 40%,rgba(255,176,32,.28),transparent 66%);}
+.prize-art svg{width:44px;height:44px;color:var(--gold);}
+
+/* ---------------------------------------------------------------- 新人礼包 */
+.nb-hero{position:relative;display:flex;align-items:center;justify-content:center;height:86px;margin:0 0 10px;}
+.nb-hero .glow{position:absolute;width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,176,32,.32),transparent 66%);}
+.nb-hero .gift{position:relative;font-size:0;}
+.nb-hero .gift svg{width:52px;height:52px;color:#FFD176;filter:drop-shadow(0 8px 18px rgba(255,176,32,.4));}
+/* v1.9.3：礼包主视觉只保留「金币数量 + 约等于多少钱」 */
+.nb-amt{margin:0 0 12px;padding:13px 12px 12px;border-radius:15px;text-align:center;
+  background:linear-gradient(180deg,rgba(255,176,32,.14),rgba(255,176,32,.05));
+  box-shadow:inset 0 0 0 1px rgba(255,176,32,.28);}
+.nb-amt .l{font-size:9.5px;font-weight:800;color:#FFC44D;letter-spacing:.3px;margin-bottom:7px;
+  text-transform:uppercase;}
+.nb-amt .row{display:flex;align-items:center;justify-content:center;gap:6px;}
+.nb-amt .row .ic{width:21px;height:21px;color:var(--gold);filter:drop-shadow(0 2px 6px rgba(255,176,32,.45));}
+.nb-amt .row b{font-size:27px;font-weight:900;line-height:1;color:#FFD176;font-variant-numeric:tabular-nums;
+  letter-spacing:-.4px;}
+.nb-amt .row span{font-size:11px;font-weight:700;color:var(--t3);align-self:flex-end;padding-bottom:3px;}
+.nb-amt .eq{margin-top:6px;font-size:10.5px;color:var(--t4);font-variant-numeric:tabular-nums;}
+
+/* ---------------------------------------------------------------- v1.9.6 邀请码兑付（BF-08-04） */
+.rd-hero{width:54px;height:54px;margin:2px auto 9px;border-radius:16px;display:grid;place-items:center;
+  background:radial-gradient(120% 120% at 32% 24%,#FFE9AE,#FFB020 62%,#C97B00 100%);}
+.rd-hero svg{width:26px;height:26px;color:#4A2B00;}
+.rd-tag{font-size:9.5px;font-weight:800;color:var(--gold);padding:3px 8px;border-radius:var(--r-full);
+  background:rgba(255,176,32,.12);box-shadow:inset 0 0 0 1px rgba(255,176,32,.24);}
+.rd-tag.on{color:#4ADE80;background:rgba(34,197,94,.13);box-shadow:inset 0 0 0 1px rgba(34,197,94,.3);}
+/* 码固定 9 位（XXXX-XXXX）：等宽 + 大字距，粘贴进来也一眼能读 */
+#rdInput{text-transform:uppercase;text-align:center;font-weight:800;letter-spacing:2.4px;font-size:15px;
+  font-variant-numeric:tabular-nums;}
+#rdInput::placeholder{letter-spacing:2.4px;font-weight:700;}
+/* 焦点/错误用金色与红分开：这里的主行动是「兑付」，不是删除类的危险操作 */
+#rdInput:focus{background:#26262F;box-shadow:inset 0 0 0 1.8px var(--gold);}
+#rdInput.err,#rdInput.err:focus{box-shadow:inset 0 0 0 1.8px #FF6B80;}
+.rd-err{min-height:15px;margin:1px 0 3px;font-size:10px;font-weight:700;color:#FF6B80;line-height:1.4;}
+.rd-ok{width:54px;height:54px;margin:2px auto 9px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(34,197,94,.14);box-shadow:inset 0 0 0 1.5px rgba(34,197,94,.4);}
+.rd-ok svg{width:26px;height:26px;color:#4ADE80;}
+.rd-gain{display:flex;align-items:center;justify-content:center;gap:5px;margin:1px 0 9px;
+  padding:11px 0;border-radius:14px;background:linear-gradient(180deg,rgba(255,176,32,.16),rgba(255,176,32,.05));
+  box-shadow:inset 0 0 0 1px rgba(255,176,32,.3);}
+.rd-gain svg{width:20px;height:20px;color:var(--gold);}
+.rd-gain b{font-size:24px;font-weight:900;color:#FFD176;line-height:1;font-variant-numeric:tabular-nums;}
+.rd-gain span{font-size:10.5px;font-weight:700;color:var(--t3);align-self:flex-end;padding-bottom:3px;}
+.rd-sub{margin:0 0 10px;font-size:10px;color:var(--t3);line-height:1.5;text-align:center;}
+
+/* ---------------------------------------------------------------- Tab 头部金币 */
+.coin-top{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 9px;border-radius:var(--r-full);
+  background:rgba(255,176,32,.12);box-shadow:inset 0 0 0 1px rgba(255,176,32,.24);
+  font-size:11.5px;font-weight:800;color:#FFD176;font-variant-numeric:tabular-nums;}
+.coin-top svg{width:13px;height:13px;color:var(--gold);}
+
+/* ---------------------------------------------------------------- v1.6 金币口径 */
+/* 首页余额下方一行现金等价：只在需要让人知道"值多少钱"时才出现 */
+.cash-sub{display:block;margin-top:1px;font-size:9.5px;font-weight:600;
+  color:rgba(255,255,255,.46);letter-spacing:.2px;font-variant-numeric:tabular-nums;}
+/* 提现页余额单位改成 MOEDAS，做成小标签，不抢数字 */
+.bal-card .amt em{font-size:9px;font-weight:800;letter-spacing:1.4px;opacity:.62;margin-bottom:6px;}
+.ec-main .amt em{color:rgba(255,176,32,.8);}
+
+/* ---------------------------------------------------------------- v1.7 新人礼包翻倍领取 */
+/* 主按钮（看激励翻倍）之后的两级：直接领取 + 小字跳过，避免三个同等按钮抢视线 */
+.dlg .acts .btn b{font-weight:800;font-variant-numeric:tabular-nums;margin-left:2px;}
+
+/* ---------------------------------------------------------------- v1.7.2 看剧计币：满 100 可领态 */
+/* 未满 = 灰球（is-empty）；满 100 = 金角标 + 加快脉冲，明确「可以手动领了」 */
+.collect.is-full .cn{background:linear-gradient(180deg,#FFD166,#FFA51A);color:#3A2100;
+  box-shadow:0 2px 8px rgba(255,176,32,.55),inset 0 0 0 1.5px rgba(255,255,255,.35);}
+.collect.is-full .ping{border-color:rgba(255,209,102,.9);animation-duration:1.1s;}
+.collect.is-full{box-shadow:0 6px 20px rgba(255,176,32,.42),inset 0 1px 2px rgba(255,255,255,.6);}
+
+/* ---------------------------------------------------------------- v1.7.4 视频不被强行放大 */
+/* 素材比例接近竖屏 → cover 满屏；横屏/方形素材 → contain 完整显示，避免只看到中间一块。
+   上下留白用同一张封面做模糊填充，不掉黑边空洞。
+   阈值判定在 40-app.js（vr > 容器比例 × 1.35）。 */
+.feed-slide.is-wide .fvid{object-fit:contain;background:transparent;}
+.feed-slide .fstill{transition:filter .45s var(--e-out),transform .45s var(--e-out);}
+.feed-slide.is-wide.has-video .fstill{
+  filter:blur(26px) brightness(.46) saturate(1.18);
+  transform:scale(1.2);
+}
+
+/* ==========================================================================
+   v1.8 · 看剧页（data-page="player"）
+   首页是发现流，看一集在这里：整集播放 + 看剧计币 + 领金币 + 切集
+   ========================================================================== */
+.pl-page{background:#000;}
+.pl-stage{position:absolute;inset:0;overflow:hidden;background:#000;}
+.pl-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;}
+
+/* 上下压暗，保证标题/按钮在浅色画面上也读得清 */
+.pl-veil{position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,0) 19%,
+             rgba(0,0,0,0) 56%,rgba(0,0,0,.84) 100%);}
+
+.pl-head{position:absolute;left:0;right:0;top:calc(var(--stat-h) + 6px);z-index:6;
+  display:flex;align-items:center;gap:8px;padding:0 12px;}
+.pl-titles{flex:1;min-width:0;text-align:center;}
+.pl-titles b{display:block;font-size:13px;font-weight:800;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 8px rgba(0,0,0,.65);}
+.pl-titles span{display:block;font-size:10px;color:rgba(255,255,255,.62);margin-top:2px;
+  font-variant-numeric:tabular-nums;}
+
+/* 收集球让到右侧互动栏上方，互不重叠
+   （rail 四项总高约 228px：76 + 228 = 304 → collect 从 312 起）
+   v1.20：左侧计时胶囊 .pl-beat 已随 DOM 一并移除 */
+.pl-collect{top:auto;right:12px;bottom:calc(env(safe-area-inset-bottom) + 312px);}
+.pl-rail{right:10px;bottom:calc(env(safe-area-inset-bottom) + 76px);}
+
+/* 横屏素材上下留白用封面做模糊填充，避免纯黑边空洞 */
+.pl-bgfill{position:absolute;inset:-34px;z-index:0;background-size:cover;
+  background-position:center;filter:blur(28px) brightness(.42) saturate(1.15);
+  transform:scale(1.06);}
+
+.pl-foot{position:absolute;left:0;right:0;bottom:0;z-index:6;
+  padding:12px 14px calc(14px + env(safe-area-inset-bottom));}
+.pl-foot h3{margin:0 0 3px;font-size:14px;font-weight:800;color:#fff;line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 8px rgba(0,0,0,.65);}
+.pl-sub{font-size:10.5px;color:rgba(255,255,255,.62);margin-bottom:10px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pl-prog{position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,.2);
+  overflow:hidden;margin-bottom:0;}
+.pl-prog i{display:block;height:100%;width:0;border-radius:2px;
+  background:linear-gradient(90deg,#FF4E6B,#FFB020);transition:width .4s linear;}
+/* v1.19：底部「EP anterior / Próximo EP」导航已移除（上下滑即可切集，见 plGo） */
+
+/* ---- v1.8.1 上下滑动切集 -------------------------------------------------
+   .pl-slide 是可位移内容层，手势只动它；.pl-ghost 留在下面接住露出的那一侧，
+   用目标集的封面临时顶上来，松手后两者交叉，观感是「一屏推走一屏」。 */
+.pl-slide{position:absolute;inset:0;z-index:2;will-change:transform;}
+.pl-ghost{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none;
+  background:#05070C;transform:translateY(100%);}
+.pl-ghost.is-prev{transform:translateY(-100%);}
+.pl-ghost.is-next{transform:translateY(100%);}
+.pl-ghost.cover{z-index:9;}          /* 提交时抬到内容层之上，做交叉淡出 */
+.pl-ghost-bg{position:absolute;inset:0;background-size:cover;background-position:center;
+  filter:brightness(.52) saturate(1.05);transform:scale(1.04);}
+.pl-ghost-tx{position:absolute;left:0;right:0;padding:0 22px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;}
+.pl-ghost.is-next .pl-ghost-tx{top:calc(var(--stat-h) + 8px);}
+.pl-ghost.is-prev .pl-ghost-tx{bottom:calc(env(safe-area-inset-bottom) + 24px);}
+.pl-ghost-tx span{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:#FFD24A;background:rgba(0,0,0,.42);padding:3px 9px;border-radius:var(--r-full);}
+.pl-ghost-tx b{font-size:14px;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.8);
+  max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pl-ghost-tx em{font-size:10px;font-style:normal;color:rgba(255,255,255,.62);
+  font-variant-numeric:tabular-nums;}
+
+/* 顶栏提现入口：看剧途中也能直接去 Sacar，不必先退出 */
+.pl-sacar{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 10px;
+  border-radius:var(--r-full);background:rgba(255,255,255,.14);color:#fff;
+  border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(8px);white-space:nowrap;
+  font-size:10.5px;font-weight:800;transition:transform .14s var(--e-out),background .16s;}
+.pl-sacar svg{width:12px;height:12px;color:#FFD24A;}
+.pl-sacar b{font-variant-numeric:tabular-nums;}
+.pl-sacar span{padding-left:5px;margin-left:1px;border-left:1px solid rgba(255,255,255,.22);}
+.pl-sacar:active{transform:scale(.94);background:rgba(255,255,255,.22);}
+
+/* 左上角幸运轮盘入口（v1.8.2）：金色圆钮 + 消耗角标 + 呼吸光晕，不挤顶栏标题 */
+.pl-wheel-entry{position:absolute;left:12px;top:calc(var(--stat-h) + 54px);z-index:7;
+  width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(120% 120% at 32% 24%,#FFE9AE,#FFB020 56%,#C97B00 100%);
+  color:#4A2B00;
+  box-shadow:0 8px 20px rgba(0,0,0,.52),inset 0 1px 2px rgba(255,255,255,.75),0 0 0 2px rgba(255,255,255,.16);}
+.pl-wheel-entry svg{width:23px;height:23px;filter:drop-shadow(0 1px 1px rgba(255,255,255,.5));}
+.pl-wheel-entry em{position:absolute;right:-7px;bottom:-5px;font-style:normal;font-size:9px;
+  font-weight:800;line-height:1.4;color:#3A1F00;background:#FFD24A;
+  border:1.5px solid #17110A;border-radius:999px;padding:0 5px;
+  font-variant-numeric:tabular-nums;}
+.pl-wheel-entry::before{content:"";position:absolute;inset:-7px;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle,rgba(255,176,32,.45),rgba(255,176,32,0) 68%);
+  animation:plGlow 2.6s ease-in-out infinite;}
+.pl-wheel-entry:active{transform:scale(.92);}
+@keyframes plGlow{0%,100%{opacity:.45;transform:scale(.9);}50%{opacity:1;transform:scale(1.08);}}
+
+/* 首页轮盘入口（v1.8.3）：贴在金币收集球正下方，右侧「收集 → 消费」同一列 */
+.feed-wheel{position:absolute;right:11px;top:calc(var(--stat-h) + 182px);z-index:22;
+  width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#4A2B00;
+  background:radial-gradient(120% 120% at 32% 24%,#FFE9AE,#FFB020 56%,#C97B00 100%);
+  box-shadow:0 8px 20px rgba(0,0,0,.52),inset 0 1px 2px rgba(255,255,255,.75),0 0 0 2px rgba(255,255,255,.16);}
+.feed-wheel svg{width:23px;height:23px;filter:drop-shadow(0 1px 1px rgba(255,255,255,.5));}
+.feed-wheel em{position:absolute;right:-7px;bottom:-5px;font-style:normal;font-size:9px;font-weight:800;
+  line-height:1.4;color:#3A1F00;background:#FFD24A;border:1.5px solid #17110A;border-radius:999px;
+  padding:0 5px;font-variant-numeric:tabular-nums;}
+.feed-wheel::before{content:"";position:absolute;inset:-7px;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle,rgba(255,176,32,.45),rgba(255,176,32,0) 68%);
+  animation:plGlow 2.6s ease-in-out infinite;}
+.feed-wheel:active{transform:scale(.92);}
+
+/* 20 格面盘：格子变窄后标签要收小，100 那格单独高亮 */
+.wheel[data-n="20"] .seg b{width:30px;left:-15px;font-size:9.5px;top:-105px;letter-spacing:-.2px;}
+.wheel .seg.is-hi b{color:#FFE9AE;font-size:11px;text-shadow:0 0 10px rgba(255,176,32,.9),0 2px 6px rgba(0,0,0,.8);}
+.wheel .seg.is-hi i{background:rgba(255,176,32,.55);height:16px;}

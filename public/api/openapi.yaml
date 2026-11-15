@@ -1,0 +1,114 @@
+# EXAMPLE ONLY — not a production API.
+# Replace this file with the real OpenAPI specification.
+# https://example.invalid is a reserved placeholder and is not a live server.
+
+openapi: "3.1.0"
+info:
+  title: Example API
+  version: "0.0.0"
+  summary: Example specification. Not a production API.
+  description: |
+    **Example only. This is not a production API.**
+
+    This minimal OpenAPI 3.1 document shows how parameters, authentication,
+    responses, and error codes appear in the reference. The server address
+    `https://example.invalid` is a placeholder and must not be treated as a
+    live endpoint.
+
+    Replace this file with the real specification before sharing it with partners.
+servers:
+  - url: "https://example.invalid"
+    description: Placeholder only. Not a production server. Replace before use.
+tags:
+  - name: Example
+    description: Sample operations used to preview the documentation. Not implemented.
+paths:
+  /example/items/{itemId}:
+    get:
+      operationId: getExampleItem
+      tags:
+        - Example
+      summary: Read an example item
+      description: |
+        Sample operation for previewing parameters, authentication, responses,
+        and error codes. This endpoint does not exist.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          description: Example item identifier.
+          schema:
+            type: string
+            examples:
+              - item_example
+        - name: verbose
+          in: query
+          required: false
+          description: Example query flag. Not used by a live service.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Example item payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExampleItem"
+              example:
+                id: item_example
+                name: Example item
+        "401":
+          description: Missing or invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: unauthorized
+                message: Example error. Not returned by a live service.
+        "404":
+          description: Example item was not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: not_found
+                message: Example error. Not returned by a live service.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Example bearer token. Not a production credential.
+  schemas:
+    ExampleItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Example identifier.
+        name:
+          type: string
+          description: Example display name.
+    Error:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Stable example error code.
+        message:
+          type: string
+          description: Human-readable example message.

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cineCone网赚项目</title>
+    <meta
+      name="description"
+      content="Explore product prototypes and API documentation."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23111113'/%3E%3Cpath d='M4 4h3.2v3.2H4zM8.8 4H12v3.2H8.8zM4 8.8h3.2V12H4zM8.8 8.8H12V12H8.8z' fill='%23f7f7f8'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="brand" href="./">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <rect x="1" y="1" width="6" height="6" rx="1.2" />
+              <rect x="9" y="1" width="6" height="6" rx="1.2" />
+              <rect x="1" y="9" width="6" height="6" rx="1.2" />
+              <rect x="9" y="9" width="6" height="6" rx="1.2" />
+            </svg>
+          </span>
+          <span class="brand-name">cineCone网赚项目</span>
+        </a>
+        <!-- Set data-url to the repository, for example https://github.com/org/developer-portal -->
+        <a
+          id="github-link"
+          class="github-link"
+          data-url=""
+          href=""
+          hidden
+          target="_blank"
+          rel="noreferrer"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+            />
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </header>
+
+    <main class="shell site-main">
+      <section class="hero">
+        <h1>cineCone网赚项目</h1>
+        <p class="lede">Explore product prototypes and API documentation.</p>
+      </section>
+
+      <section class="cards" aria-label="Documentation">
+        <article class="card" id="prototype-card">
+          <span class="icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3.5" y="3.5" width="17" height="17" rx="2" />
+              <path d="M3.5 9.5h17M9.5 9.5V20.5" />
+            </svg>
+          </span>
+          <div class="card-body">
+            <div class="card-heading">
+              <h2>Product Prototype</h2>
+              <p class="badge" data-badge>Coming Soon</p>
+            </div>
+            <p>Explore interactive product prototypes and workflows.</p>
+          </div>
+        </article>
+
+        <a class="card card-link" href="./api/">
+          <span class="icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M5 5.2A2.2 2.2 0 0 1 7.2 3H19.5v16.2H7.2A2.2 2.2 0 0 0 5 21.4V5.2z" />
+              <path d="M5 5.2A2.2 2.2 0 0 1 7.2 7.4H19.5" />
+              <path d="M9.2 12.2 7.8 13.6l1.4 1.4M12.4 15.2h2.3" />
+            </svg>
+          </span>
+          <div class="card-body">
+            <div class="card-heading">
+              <h2>API Documentation</h2>
+            </div>
+            <p>Explore API endpoints, authentication, requests and responses.</p>
+          </div>
+          <span class="card-go" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
+        </a>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        var github = document.getElementById("github-link");
+        if (github) {
+          var githubUrl = (github.getAttribute("data-url") || "").trim();
+          if (githubUrl) {
+            github.href = githubUrl;
+            github.hidden = false;
+          }
+        }
+
+        var card = document.getElementById("prototype-card");
+        if (!card || !window.fetch) return;
+
+        var probe = new URL("./prototype/index.html", document.baseURI);
+        fetch(probe.href, { cache: "no-store" })
+          .then(function (response) {
+            if (!response.ok) return;
+            var link = document.createElement("a");
+            link.className = "card card-link";
+            link.href = "./prototype/";
+            link.innerHTML = card.innerHTML;
+            var badge = link.querySelector("[data-badge]");
+            if (badge) badge.remove();
+            card.replaceWith(link);
+          })
+          .catch(function () {});
+      })();
+    </script>
+  </body>
+</html>

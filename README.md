@@ -1,0 +1,127 @@
+# Developer Portal
+
+面向第三方的静态开发者门户。用 GitHub Pages 展示产品原型和 API 文档，不需要后端、数据库、登录或构建步骤。
+
+首页提供两个入口：
+
+- **Product Prototype**：产品原型。目录里还没有页面时，首页显示 Coming Soon，入口不可点击。
+- **API Documentation**：由 [Scalar](https://github.com/scalar/scalar) 渲染的 OpenAPI 3.1 文档，包含参数、响应、认证、错误码，以及 Scalar 自带的请求调试。
+
+页面使用相对链接。同一套文件可以放在 GitHub 项目站点（`https://<user>.github.io/<repo>/`）或自定义域名的根路径下。
+
+## 目录结构
+
+```text
+├── public/                      # GitHub Pages 发布目录
+│   ├── index.html               # 门户首页
+│   ├── assets/styles.css
+│   ├── prototype/               # 产品原型。目前只有 .gitkeep
+│   │   └── .gitkeep
+│   └── api/
+│       ├── index.html           # Scalar API 文档
+│       └── openapi.yaml         # OpenAPI 3.1 规范
+├── .github/workflows/deploy.yml # 推送到 main 时部署
+└── README.md
+```
+
+部署后的站点路径：
+
+```text
+/              Developer Portal
+/prototype/    产品原型（加入 index.html 之后）
+/api/          Scalar API 文档
+```
+
+上面是站点根目录下的相对结构。项目 Pages 会自动带上 `/<repo>/` 前缀，页面里的链接不用改。
+
+## 启用 GitHub Pages
+
+工作流在仓库根目录的 `.github/workflows/deploy.yml`。GitHub 只会读取这个位置。
+
+1. 把仓库推送到 GitHub 的 `main` 分支。
+2. 打开仓库 **Settings → Pages**。
+3. 在 **Build and deployment** 里，把 **Source** 选为 **GitHub Actions**。不要选 “Deploy from a branch”。
+4. 打开 **Actions**，确认 “Deploy GitHub Pages” 成功。也可以用 **Run workflow** 手动部署一次。
+5. 部署完成后，Pages 设置页会显示站点地址。
+
+公开仓库可以免费使用 GitHub Pages。私有仓库需要支持 Pages 的 GitHub 方案。
+
+## 本地预览
+
+在 `public/` 下启动任意静态服务器：
+
+```bash
+cd public
+python3 -m http.server 8080
+```
+
+打开 `http://127.0.0.1:8080/`。不要直接双击 HTML 文件：浏览器会用 `file://` 打开，原型探测和 OpenAPI 加载都会失败。
+
+## 修改首页
+
+编辑这两个文件：
+
+- `public/index.html`：文案和入口
+- `public/assets/styles.css`：视觉样式
+
+首页默认是浅色，并跟随系统的深色模式，没有单独的主题开关。
+
+GitHub 链接默认隐藏。要显示它，给首页的 `#github-link` 填写 `data-url`：
+
+```html
+<a id="github-link" class="github-link" data-url="https://github.com/org/developer-portal" ...>
+```
+
+链接请继续使用相对路径，例如 `./api/`、`./prototype/`。不要写成 `/api/`，否则项目 Pages 的 `/<repo>/` 前缀会失效。
+
+## 更新 OpenAPI
+
+编辑 `public/api/openapi.yaml`。`public/api/index.html` 会按当前页面地址加载同目录的这个文件，项目 Pages 和自定义域名都不需要改路径。
+
+当前 YAML 是一个最小的 OpenAPI 3.1 示例：
+
+- 标题是 **Example API**
+- 服务器是 `https://example.invalid`，这是保留域名，不是生产接口
+- 只有一个示例操作，用来预览参数、Bearer 认证、响应结构和 401 / 404 错误
+
+把真实规范写进这个文件后再分享给第三方。Scalar 会展示规范里的参数、响应模型、认证方式和错误码，并用页面上的客户端发送调试请求。跨域请求走 Scalar 的代理 `https://proxy.scalar.com`。
+
+文档页通过 CDN 固定加载 `@scalar/api-reference@1.78.1`。升级时改 `public/api/index.html` 里的脚本地址即可。
+
+## 添加产品原型
+
+1. 新增 `public/prototype/index.html`，以及原型需要的样式和脚本。
+2. 原型内部继续使用相对链接，以便兼容 `/<repo>/prototype/`。
+3. 提交并推送到 `main`。
+
+首页会请求 `./prototype/index.html`。文件返回成功后，Product Prototype 卡片变成可点击链接，并去掉 Coming Soon。文件不存在时，卡片不是链接，不会跳转。`.gitkeep` 只为了让 Git 跟踪空目录，不会被当成原型页面。
+
+## 绑定自定义域名
+
+1. 购买域名并准备 DNS。
+2. 在 **Settings → Pages → Custom domain** 填入域名。
+3. 按 [GitHub 自定义域名文档](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site) 添加 DNS：
+   - 子域名：CNAME 到 `<user>.github.io`
+   - 根域名：按文档中的 A 记录和 AAAA 记录配置
+4. 等待 DNS 生效后，在 Pages 设置里开启 **Enforce HTTPS**。
+5. 可选：在 `public/CNAME` 中写入域名并提交。这样每次 Actions 部署都会带上域名，避免设置被覆盖。
+
+自定义域名从站点根路径提供页面。现有相对链接不用修改。
+
+## 通过 Git Push 部署
+
+`.github/workflows/deploy.yml` 会在下面两种情况运行：
+
+- 向 `main` 推送
+- 在 Actions 页面手动触发
+
+工作流使用 GitHub 官方的 Pages Actions，把 `public/` 作为发布目录上传。没有 `npm install`，也没有构建命令。
+
+一次成功的部署会发布：
+
+```text
+public/index.html          → /
+public/prototype/          → /prototype/
+public/api/index.html      → /api/
+public/api/openapi.yaml    → /api/openapi.yaml
+```
