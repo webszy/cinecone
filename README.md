@@ -1,11 +1,14 @@
 # Developer Portal
 
-面向第三方的静态开发者门户。用 GitHub Pages 展示产品原型和 API 文档，不需要后端、数据库、登录或构建步骤。
+面向第三方的静态开发者门户。用 GitHub Pages 展示产品需求文档、产品原型和 API 文档，不需要后端、数据库、登录或构建步骤。
 
-首页提供两个入口：
+首页提供三个入口：
 
+- **Product Requirements**：产品需求文档（PRD v2.6.0）。单文件 HTML，双击可读，无外部依赖。
 - **Product Prototype**：产品原型。目录里还没有页面时，首页显示 Coming Soon，入口不可点击。
 - **API Documentation**：由 [Scalar](https://github.com/scalar/scalar) 渲染的 OpenAPI 3.1 文档，包含参数、响应、认证、错误码，以及 Scalar 自带的请求调试。
+
+卡片顺序按阅读链路排：需求 → 原型 → 接口。
 
 页面使用相对链接。同一套文件可以放在 GitHub 项目站点（`https://<user>.github.io/<repo>/`）或自定义域名的根路径下。
 
@@ -15,11 +18,16 @@
 ├── public/                      # GitHub Pages 发布目录
 │   ├── index.html               # 门户首页
 │   ├── assets/styles.css
-│   ├── prototype/               # 产品原型。目前只有 .gitkeep
-│   │   └── .gitkeep
+│   ├── PRD/
+│   │   └── index.html           # 产品需求文档 v2.6.0（单文件，全内联）
+│   ├── prototype/               # 产品原型（构建产物 + 源分片）
+│   │   ├── index.html
+│   │   ├── src/
+│   │   └── data/snapshot.json
 │   └── api/
 │       ├── index.html           # Scalar API 文档
-│       └── openapi.yaml         # OpenAPI 3.1 规范
+│       ├── openapi.yaml         # OpenAPI 3.1 规范（重建中，已覆盖 /v1/config）
+│       └── 10-统一接口文档-v1.0.md  # 接口基线（人读，权威）
 ├── .github/workflows/deploy.yml # 推送到 main 时部署
 └── README.md
 ```
@@ -28,7 +36,8 @@
 
 ```text
 /              Developer Portal
-/prototype/    产品原型（加入 index.html 之后）
+/PRD/          产品需求文档
+/prototype/    产品原型
 /api/          Scalar API 文档
 ```
 
@@ -113,6 +122,16 @@ GitHub 链接默认隐藏。要显示它，给首页的 `#github-link` 填写 `d
 
 首页会请求 `./prototype/index.html`。文件返回成功后，Product Prototype 卡片变成可点击链接，并去掉 Coming Soon。文件不存在时，卡片不是链接，不会跳转。`.gitkeep` 只为了让 Git 跟踪空目录，不会被当成原型页面。
 
+## 更新 PRD
+
+需求文档是一份自包含的单文件 HTML：`public/PRD/index.html`（v2.6.0，约 331 KB，样式与内容全部内联，无 CDN、无图片外链）。
+
+换版本时直接覆盖这个文件即可，不需要改首页。注意三点：
+
+1. **保持 `public/PRD/` 这个大小写**。首页链接是 `./PRD/`，GitHub Pages 跑在 Linux 上区分大小写，改成 `prd/` 会 404。
+2. **不要引入外部资源**。一旦引用 CDN 字体或外链图片，离线打开和弱网下的可读性都会退化；现在双击文件就能读全文。
+3. **版本号写进首页卡片文案**。卡片描述里带 `(v2.6.0)`，升级 PRD 时同步改 `public/index.html` 里那一行，否则首页显示旧版本。
+
 ## 绑定自定义域名
 
 1. 购买域名并准备 DNS。
@@ -138,6 +157,7 @@ GitHub 链接默认隐藏。要显示它，给首页的 `#github-link` 填写 `d
 
 ```text
 public/index.html          → /
+public/PRD/index.html      → /PRD/
 public/prototype/          → /prototype/
 public/api/index.html      → /api/
 public/api/openapi.yaml    → /api/openapi.yaml

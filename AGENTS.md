@@ -6,7 +6,7 @@
 
 ## 1. 这是什么项目
 
-一个**纯静态**的开发者门户，用 GitHub Pages 托管，对外展示「cineCone 短剧网赚 App」的产品原型和 API 文档。
+一个**纯静态**的开发者门户，用 GitHub Pages 托管，对外展示「cineCone 短剧网赚 App」的产品需求文档、产品原型和 API 文档。
 
 - 没有任何构建系统：没有 `package.json`、没有 `npm install`、没有打包步骤
 - 没有后端、没有数据库、没有登录
@@ -16,7 +16,8 @@
 
 | 入口 | 路径 | 说明 |
 |---|---|---|
-| 门户首页 | `public/index.html` | 两张卡片：原型 / API 文档 |
+| 门户首页 | `public/index.html` | 三张卡片：需求 / 原型 / 接口（按阅读链路排序） |
+| 产品需求文档 | `public/PRD/index.html` | PRD v2.6.0，单文件全内联，约 331 KB，双击可读 |
 | 产品原型 | `public/prototype/index.html` | 单文件高保真原型，约 690 KB，含接口快照 |
 | 接口文档 | `public/api/index.html` | Scalar 渲染 `openapi.yaml` |
 
@@ -28,6 +29,8 @@
 ├── public/                          # 唯一发布目录（Actions 上传的就是它）
 │   ├── index.html                   # 门户首页（探测 ./prototype/index.html 是否存在）
 │   ├── assets/styles.css            # 门户 + 文档页样式（浅色/深色跟随系统）
+│   ├── PRD/
+│   │   └── index.html               # 产品需求文档。目录名大写，Linux 上区分大小写
 │   ├── prototype/
 │   │   ├── index.html               # ★ 构建产物，不要手改（见第 5 节）
 │   │   ├── src/                      # ★ 真正的源码，按数字前缀拼接
@@ -35,7 +38,7 @@
 │   │   └── README.md                # 原型的完整变更史与设计口径（很长，但权威）
 │   └── api/
 │       ├── index.html               # Scalar 容器，CDN 固定 @scalar/api-reference@1.78.1
-│       ├── openapi.yaml             # 目前是 example.invalid 占位（见第 7 节）
+│       ├── openapi.yaml             # 机读合同（重建中，已覆盖 /v1/config，见第 8 节）
 │       └── 10-统一接口文档-v1.0.md   # ★ 真正的接口基线 v1.2，46 path / 15 schema
 ├── .github/workflows/deploy.yml     # push 到 main → 部署 Pages
 └── README.md                        # 部署与运维手册
@@ -52,6 +55,7 @@
 4. **不要直接打开 `file://`**。浏览器的 CORS 与 fetch 会让原型探测、OpenAPI 加载、接口快照全部失效。本地预览必须起静态服务器。
 5. **`.idea/` 已在 `.gitignore` 里**，不要提交 IDE 配置。
 6. **两个文档不要互相污染**：`public/api/10-统一接口文档-v1.0.md` 是中文接口基线（人读），`openapi.yaml` 是机器合同（Scalar 读）。
+7. **目录名大小写要照抄**：`public/PRD/` 是大写，首页链接必须写 `./PRD/`。GitHub Pages 跑在 Linux 上区分大小写，本地 macOS 不区分 —— 本地能开、线上 404 的坑就出在这。
 
 ---
 
@@ -194,7 +198,7 @@ window.__CCAPI__    // 约 60 个动作：openWheel / openClaim / playEpisode / 
 1. **`openapi.yaml` 正在从零重建，目前只覆盖 1/46 个 path。** 占位规范（`example.invalid`）已于 2026-11-16 移除，现在的合同是真实的 `CineCoin API`，但只有 `GET /v1/config` 一个接口。真实基线在 `10-统一接口文档-v1.0.md`（46 path / 15 schema），按「配置 → 登录 → 观看计币 → 广告奖励 → 钱包提现」顺序逐步补齐。补齐前对外分享必须说明覆盖范围。
    - 改动后用 `npx --yes @redocly/cli@latest lint public/api/openapi.yaml` 校验，要求 0 error 0 warning。
 2. **`build.py` / `tools/snapshot.py` 缺失**（第 5 节）。想恢复可重复构建，需要按分片顺序重写一个拼接脚本，并加标签配平自检。
-3. **原型 README 与产品 PRD 版本有出入**：README 说对应 PRD v2.6.0，但文件名仍是 `CineCoin-PRD-v2.4`；`拆解/` 目录（PRD、策略平台 PRD、openapi-v1.json）**均不在本仓库**。
+3. **PRD 只有 v2.6.0 这一份，且是单文件**：`public/PRD/index.html`（标题 `CineCoin 产品需求文档 v2.6.0 · 两大模块`）已入库，但基线文档引用的 `拆解/` 目录（策略平台 PRD、`openapi-v1.json`、PRD 的历史版本）**仍不在本仓库**。原型 README 里写「对应 PRD v2.6.0」，而正文引用的文件名仍是 `CineCoin-PRD-v2.4` —— 这是历史命名，不代表版本倒退。
 4. **接口未开 CORS**：`api.salesmarto.com` 不返回 `Access-Control-Allow-Origin`，浏览器实时拉取会被拦，所以构建期快照是主路径，实时模式是"能成就更好"。别把实时拉取当依赖。
 5. **`/home-feed` 只覆盖 12/101 部剧**，其余剧的集用同一段演示片段——这是接口能力边界，不是播放逻辑缺陷。
 6. **口径漂移风险**：`README` 第 1 节提到 v1.6「金币唯一资产」与 PRD v2.4.12「单币种现金」正好相反，以**金币口径**为准（代码已实现）。

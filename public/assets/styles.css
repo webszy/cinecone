@@ -316,6 +316,21 @@ a {
   }
 }
 
+/* 三张卡片在壳宽（920px）铺满时并排，避免 2+1 的半空行 */
+@media (min-width: 968px) {
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 两列区间内落单的最后一张撑满整行，不留半空；高度按内容收敛，避免宽卡片中央大片留白 */
+@media (min-width: 760px) and (max-width: 967px) {
+  .cards > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    min-height: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .shell {
     width: min(920px, calc(100% - 40px));

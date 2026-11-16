@@ -6,7 +6,7 @@
     <title>cineCone网赚项目</title>
     <meta
       name="description"
-      content="Explore product prototypes and API documentation."
+      content="Explore product requirements, prototypes and API documentation."
     />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23111113'/%3E%3Cpath d='M4 4h3.2v3.2H4zM8.8 4H12v3.2H8.8zM4 8.8h3.2V12H4zM8.8 8.8H12V12H8.8z' fill='%23f7f7f8'/%3E%3C/svg%3E" />
@@ -56,10 +56,31 @@
     <main class="shell site-main">
       <section class="hero">
         <h1>cineCone网赚项目</h1>
-        <p class="lede">Explore product prototypes and API documentation.</p>
+        <p class="lede">Explore product requirements, prototypes and API documentation.</p>
       </section>
 
       <section class="cards" aria-label="Documentation">
+        <a class="card card-link" href="./PRD/">
+          <span class="icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M6 3.5h8.5L19 8v12.5H6z" />
+              <path d="M14 3.5V8h4.5" />
+              <path d="M9 12h7M9 15.5h5" />
+            </svg>
+          </span>
+          <div class="card-body">
+            <div class="card-heading">
+              <h2>Product Requirements</h2>
+            </div>
+            <p>Read the modules, flows and acceptance criteria behind the app (v2.6.0).</p>
+          </div>
+          <span class="card-go" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
+        </a>
+
         <article class="card" id="prototype-card">
           <span class="icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -123,6 +144,13 @@
             link.innerHTML = card.innerHTML;
             var badge = link.querySelector("[data-badge]");
             if (badge) badge.remove();
+            // 原型页面存在才补箭头：Coming Soon 态不是链接，不该有可点击的暗示
+            var go = document.createElement("span");
+            go.className = "card-go";
+            go.setAttribute("aria-hidden", "true");
+            go.innerHTML =
+              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>';
+            link.appendChild(go);
             card.replaceWith(link);
           })
           .catch(function () {});
