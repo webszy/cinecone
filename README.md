@@ -38,13 +38,30 @@
 
 工作流在仓库根目录的 `.github/workflows/deploy.yml`。GitHub 只会读取这个位置。
 
+**前置条件**：GitHub Pages 必须先在仓库上启用，否则 `actions/configure-pages` 会在 `Setup Pages` 一步直接失败，报错：
+
+```text
+Get Pages site failed. Please verify that the repository has Pages enabled
+and configured to build using GitHub Actions.
+Error: Not Found - /rest/pages/pages#get-a-apiname-pages-site
+```
+
+这个 404 不是 workflow 写错，而是 Pages 根本没启用。启用后 `Upload artifact` 与 `Deploy` 才会执行。
+
 1. 把仓库推送到 GitHub 的 `main` 分支。
 2. 打开仓库 **Settings → Pages**。
 3. 在 **Build and deployment** 里，把 **Source** 选为 **GitHub Actions**。不要选 “Deploy from a branch”。
 4. 打开 **Actions**，确认 “Deploy GitHub Pages” 成功。也可以用 **Run workflow** 手动部署一次。
 5. 部署完成后，Pages 设置页会显示站点地址。
 
-公开仓库可以免费使用 GitHub Pages。私有仓库需要支持 Pages 的 GitHub 方案。
+也可以用 API 启用，等价于上面第 2、3 步：
+
+```bash
+gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow
+```
+
+公开仓库可以免费使用 GitHub Pages。**私有仓库的 Pages 需要 GitHub Pro / Team / Enterprise**：在免费账号的私有仓库上调用启用接口会返回
+`422 Your current plan does not support GitHub Pages for this repository`。这种情况下要么把仓库改为 public，要么升级方案。
 
 ## 本地预览
 
