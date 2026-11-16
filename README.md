@@ -26,9 +26,12 @@
 │   │   └── data/snapshot.json
 │   └── api/
 │       ├── index.html           # Scalar API 文档
-│       ├── openapi.yaml         # OpenAPI 3.1 规范（重建中，已覆盖 /v1/config）
+│       ├── openapi.json         # OpenAPI 3.1 机器合同（Scalar 读的就是它）
 │       └── 10-统一接口文档-v1.0.md  # 接口基线（人读，权威）
 ├── .github/workflows/deploy.yml # 推送到 main 时部署
+├── redocly.yaml                 # OpenAPI 校验配置
+├── Bootstrap-接口契约说明.md     # Bootstrap 契约 + 冲突与待确认清单
+├── AGENTS.md                    # 项目地图与硬约束（给 AI / 新人读）
 └── README.md
 ```
 
@@ -102,13 +105,26 @@ GitHub 链接默认隐藏。要显示它，给首页的 `#github-link` 填写 `d
 
 ## 更新 OpenAPI
 
-编辑 `public/api/openapi.yaml`。`public/api/index.html` 会按当前页面地址加载同目录的这个文件，项目 Pages 和自定义域名都不需要改路径。
+编辑 `public/api/openapi.json`。`public/api/index.html` 会按当前页面地址加载同目录的这个文件，项目 Pages 和自定义域名都不需要改路径。
 
-当前 YAML 是一个最小的 OpenAPI 3.1 示例：
+规范用 **JSON** 而不是 YAML：这份合同由脚本生成与校验，JSON 不怕缩进和制表符——YAML 在长段中文描述里踩过一次缩进错位。
 
-- 标题是 **Example API**
-- 服务器是 `https://example.invalid`，这是保留域名，不是生产接口
-- 只有一个示例操作，用来预览参数、Bearer 认证、响应结构和 401 / 404 错误
+当前覆盖两个接口：
+
+| 接口 | 作用 | 文档 |
+|---|---|---|
+| `POST /v1/app/bootstrap` | App 冷启初始化：身份 + 会话 + 三段配置 + 启动弹窗 | [Bootstrap-接口契约说明.md](./Bootstrap-接口契约说明.md) |
+| `GET /v1/config` | 运行时配置局部刷新 | 接口基线 §4.1 |
+
+其余分组（登录、观看计币、广告奖励、钱包提现）尚未写入规范，以 `10-统一接口文档-v1.0.md` 为准。
+
+改完必须校验，要求 **0 error 0 warning**：
+
+```bash
+npx --yes @redocly/cli@latest lint public/api/openapi.json
+```
+
+`servers[0].url` 是**占位域名**（`https://api.test.com`），正式域名未定，不要拿去联调。
 
 把真实规范写进这个文件后再分享给第三方。Scalar 会展示规范里的参数、响应模型、认证方式和错误码，并用页面上的客户端发送调试请求。跨域请求走 Scalar 的代理 `https://proxy.scalar.com`。
 
@@ -160,5 +176,5 @@ public/index.html          → /
 public/PRD/index.html      → /PRD/
 public/prototype/          → /prototype/
 public/api/index.html      → /api/
-public/api/openapi.yaml    → /api/openapi.yaml
+public/api/openapi.json    → /api/openapi.json
 ```

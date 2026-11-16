@@ -40,7 +40,7 @@
           } else if (!path.endsWith("/")) {
             path += "/";
           }
-          return new URL("openapi.yaml", current.origin + path).href;
+          return new URL("openapi.json", current.origin + path).href;
         }
 
         if (!window.Scalar || !window.Scalar.createApiReference) {

@@ -19,7 +19,7 @@
 | 门户首页 | `public/index.html` | 三张卡片：需求 / 原型 / 接口（按阅读链路排序） |
 | 产品需求文档 | `public/PRD/index.html` | PRD v2.6.0，单文件全内联，约 331 KB，双击可读 |
 | 产品原型 | `public/prototype/index.html` | 单文件高保真原型，约 690 KB，含接口快照 |
-| 接口文档 | `public/api/index.html` | Scalar 渲染 `openapi.yaml` |
+| 接口文档 | `public/api/index.html` | Scalar 渲染 `openapi.json` |
 
 ---
 
@@ -38,7 +38,7 @@
 │   │   └── README.md                # 原型的完整变更史与设计口径（很长，但权威）
 │   └── api/
 │       ├── index.html               # Scalar 容器，CDN 固定 @scalar/api-reference@1.78.1
-│       ├── openapi.yaml             # 机读合同（重建中，已覆盖 /v1/config，见第 8 节）
+│       ├── openapi.json             # 机读合同（Bootstrap + Config，见第 8 节）
 │       └── 10-统一接口文档-v1.0.md   # ★ 真正的接口基线 v1.2，46 path / 15 schema
 ├── .github/workflows/deploy.yml     # push 到 main → 部署 Pages
 └── README.md                        # 部署与运维手册
@@ -54,7 +54,7 @@
 3. **不要在 `public/` 之外新增发布资源**。Pages 只上传 `public/`。
 4. **不要直接打开 `file://`**。浏览器的 CORS 与 fetch 会让原型探测、OpenAPI 加载、接口快照全部失效。本地预览必须起静态服务器。
 5. **`.idea/` 已在 `.gitignore` 里**，不要提交 IDE 配置。
-6. **两个文档不要互相污染**：`public/api/10-统一接口文档-v1.0.md` 是中文接口基线（人读），`openapi.yaml` 是机器合同（Scalar 读）。
+6. **两个文档不要互相污染**：`public/api/10-统一接口文档-v1.0.md` 是中文接口基线（人读），`openapi.json` 是机器合同（Scalar 读）。基线是**权威**，规范与它冲突时以基线为准并同步改规范。
 7. **目录名大小写要照抄**：`public/PRD/` 是大写，首页链接必须写 `./PRD/`。GitHub Pages 跑在 Linux 上区分大小写，本地 macOS 不区分 —— 本地能开、线上 404 的坑就出在这。
 
 ---
@@ -195,8 +195,9 @@ window.__CCAPI__    // 约 60 个动作：openWheel / openClaim / playEpisode / 
 
 这些不是 bug 报告，是**知情状态**。改到相关区域时顺手处理或至少别扩大：
 
-1. **`openapi.yaml` 正在从零重建，目前只覆盖 1/46 个 path。** 占位规范（`example.invalid`）已于 2026-11-16 移除，现在的合同是真实的 `CineCoin API`，但只有 `GET /v1/config` 一个接口。真实基线在 `10-统一接口文档-v1.0.md`（46 path / 15 schema），按「配置 → 登录 → 观看计币 → 广告奖励 → 钱包提现」顺序逐步补齐。补齐前对外分享必须说明覆盖范围。
-   - 改动后用 `npx --yes @redocly/cli@latest lint public/api/openapi.yaml` 校验，要求 0 error 0 warning。
+1. **`openapi.json` 正在从零重建，目前覆盖 2/46 个 path**（`POST /v1/app/bootstrap`、`GET /v1/config`）。真实基线在 `10-统一接口文档-v1.0.md`（46 path / 15 schema），按「Bootstrap → 登录 → 观看计币 → 广告奖励 → 钱包提现」顺序逐步补齐。补齐前对外分享必须说明覆盖范围。
+   - 改动后用 `npx --yes @redocly/cli@latest lint public/api/openapi.json` 校验（仓库根有 `redocly.yaml`），要求 0 error 0 warning。
+   - **别把 `openapi.json` 改回 YAML**：长段中文描述在 YAML 里缩进极易错位，这份文件现在由 Ruby 脚本从分片 YAML 合成后输出 JSON，手工维护请直接改 JSON。
    - **`servers[0].url` 是占位域名 `https://api.test.com`**：正式 API 域名尚未确定。不要把示例地址当真实环境去联调；域名定档后只改这一行，并在 `info.x-server-status` 同步状态。基线文档里的 `api.cinecoin.app` 同样只是示意，没有实际部署。
 2. **`build.py` / `tools/snapshot.py` 缺失**（第 5 节）。想恢复可重复构建，需要按分片顺序重写一个拼接脚本，并加标签配平自检。
 3. **PRD 只有 v2.6.0 这一份，且是单文件**：`public/PRD/index.html`（标题 `CineCoin 产品需求文档 v2.6.0 · 两大模块`）已入库，但基线文档引用的 `拆解/` 目录（策略平台 PRD、`openapi-v1.json`、PRD 的历史版本）**仍不在本仓库**。原型 README 里写「对应 PRD v2.6.0」，而正文引用的文件名仍是 `CineCoin-PRD-v2.4` —— 这是历史命名，不代表版本倒退。

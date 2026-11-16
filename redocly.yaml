@@ -1,0 +1,12 @@
+# Redocly 校验配置（`npx @redocly/cli lint public/api/openapi.json`）
+#
+# 为什么要关掉 no-required-schema-properties-undefined：
+# 配置段用 `if/then` 表达「status=updated 时必须带 values」这类条件必填，
+# `required` 写在 then 分支里、属性定义在父级 schema 上。该规则只看单个
+# schema 节点，认不出父级属性，会对这类合法写法误报。
+# 关掉它才能让 lint 结果回到「0 error 0 warning」，否则真问题会被淹没。
+extends:
+  - recommended
+
+rules:
+  no-required-schema-properties-undefined: off
