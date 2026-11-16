@@ -54,7 +54,7 @@
 3. **不要在 `public/` 之外新增发布资源**。Pages 只上传 `public/`。
 4. **不要直接打开 `file://`**。浏览器的 CORS 与 fetch 会让原型探测、OpenAPI 加载、接口快照全部失效。本地预览必须起静态服务器。
 5. **`.idea/` 已在 `.gitignore` 里**，不要提交 IDE 配置。
-6. **两个文档不要互相污染**：`public/api/10-统一接口文档-v1.0.md` 是中文接口基线（人读），`openapi.json` 是机器合同（Scalar 读）。基线是**字段语义的权威**（字段名、区间、枚举值以它为准），但**路由取舍以规范为准**：产品已决定取消独立的配置接口，基线 §4.1 的 `GET /v1/config` 属废弃定义，不要因为「基线里有」就把它加回规范。
+6. **接口文档只改 `openapi.json`，基线文档只读**：`public/api/10-统一接口文档-v1.0.md` 是**冻结的**中文接口基线，只作为字段语义的参考（字段名、区间、枚举值以它为准），**任何情况下都不要编辑它**。所有接口变更——新增、改字段、废弃接口——**只写 `openapi.json`**；废弃的接口在规范里删掉即可，不必回基线把它划掉。改基线会让仓库出现第二份真值，且它的章节编号被 PRD 和各种文档引用着，改一处就连锁失准。
 7. **配置只有一个入口**：所有配置（区域 / 运行时 / 弹窗）都由 `POST /v1/app/bootstrap` 的 `config` 段下发。新增运营参数就加到 `RuntimeConfigValues`，**不要新开一个「拉配置」的路由**。汇率、单次奖励金额、提现档位、提现 SLA、KYC 强度**永远不是配置项**。
 8. **目录名大小写要照抄**：`public/PRD/` 是大写，首页链接必须写 `./PRD/`。GitHub Pages 跑在 Linux 上区分大小写，本地 macOS 不区分 —— 本地能开、线上 404 的坑就出在这。
 
@@ -197,7 +197,7 @@ window.__CCAPI__    // 约 60 个动作：openWheel / openClaim / playEpisode / 
 这些不是 bug 报告，是**知情状态**。改到相关区域时顺手处理或至少别扩大：
 
 1. **`openapi.json` 正在从零重建，目前只有 1 个 path：`POST /v1/app/bootstrap`**，它是**冷启 + 配置下发的唯一入口**。`GET /v1/config` 已按产品决定从规范移除（2026-11-16），不要再加回来——区域 / 运行时 / 弹窗三块配置都在 Bootstrap 的 `config` 段下发，版本比对走 `config_versions`。
-   - **基线文档与规范已分叉**：`10-统一接口文档-v1.0.md` §4.1 仍留着 `GET /v1/config` 的旧定义。读基线时以 `openapi.json` 为准；下次编辑基线应把 §4.1 标为废弃并指向 Bootstrap。
+   - **基线文档只读**：`10-统一接口文档-v1.0.md` §4.1 仍留着 `GET /v1/config` 的旧定义，不要在规范里恢复它，**也不要去改基线**。读基线时以 `openapi.json` 为准；两者的分叉是预期状态（见硬约束 6）。
    - 真实基线共 46 path / 15 schema，按「Bootstrap → 登录 → 观看计币 → 广告奖励 → 钱包提现」顺序逐步补齐。补齐前对外分享必须说明覆盖范围。
    - 改动后用 `npx --yes @redocly/cli@latest lint public/api/openapi.json` 校验（仓库根有 `redocly.yaml`），要求 0 error 0 warning。
    - **别把 `openapi.json` 改回 YAML**：长段中文描述在 YAML 里缩进极易错位，这份文件现在由 Ruby 脚本从分片 YAML 合成后输出 JSON，手工维护请直接改 JSON。

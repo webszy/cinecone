@@ -27,7 +27,7 @@
 │   └── api/
 │       ├── index.html           # Scalar API 文档
 │       ├── openapi.json         # OpenAPI 3.1 机器合同（Scalar 读的就是它）
-│       └── 10-统一接口文档-v1.0.md  # 接口基线（人读，权威）
+│       └── 10-统一接口文档-v1.0.md  # 接口基线（只读参考，勿修改）
 ├── .github/workflows/deploy.yml # 推送到 main 时部署
 ├── redocly.yaml                 # OpenAPI 校验配置
 ├── Bootstrap-接口契约说明.md     # Bootstrap 契约 + 冲突与待确认清单
@@ -115,9 +115,9 @@ GitHub 链接默认隐藏。要显示它，给首页的 `#github-link` 填写 `d
 |---|---|---|
 | `POST /v1/app/bootstrap` | App 冷启初始化：身份 + 会话 + 三段配置 + 启动弹窗 | [Bootstrap-接口契约说明.md](./Bootstrap-接口契约说明.md) |
 
-它是**冷启与配置下发的唯一入口**。原先的 `GET /v1/config` 已从规范中移除——区域、运行时、弹窗三块配置都由 Bootstrap 的 `config` 段下发，靠 `config_versions` 做版本比对。接口基线 `10-统一接口文档-v1.0.md` 里仍留着 §4.1 的旧定义，读基线时以本规范为准。
+它是**冷启与配置下发的唯一入口**。原先的 `GET /v1/config` 已从规范中移除——区域、运行时、弹窗三块配置都由 Bootstrap 的 `config` 段下发，靠 `config_versions` 做版本比对。接口基线 `10-统一接口文档-v1.0.md` 里仍留着 §4.1 的旧定义 —— 基线是**冻结的只读参考**，不改它；接口变更只写 `openapi.json`，两者分叉是预期状态。
 
-其余分组（登录、观看计币、广告奖励、钱包提现）尚未写入规范，以 `10-统一接口文档-v1.0.md` 为准。
+其余分组（登录、观看计币、广告奖励、钱包提现）尚未写入规范，需要时查 `10-统一接口文档-v1.0.md`（只读）。
 
 改完必须校验，要求 **0 error 0 warning**：
 
