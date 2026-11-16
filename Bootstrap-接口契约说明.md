@@ -1,7 +1,7 @@
 # Bootstrap 接口契约说明
 
-- 版本：v0.1（2026-11-16）
-- 对应规范：`public/api/openapi.json` v0.2.0（OpenAPI 3.1.0）
+- 版本：v0.2（2026-11-16）
+- 对应规范：`public/api/openapi.json` v0.3.0（OpenAPI 3.1.0），规范内**只有本接口**
 - 权威基线：`public/api/10-统一接口文档-v1.0.md`（v1.2）、`public/PRD/index.html`（PRD v2.6.0）
 - 范围：**只定义 `POST /v1/app/bootstrap`**。未改动登录、账本、提现等任何既有接口。
 
@@ -21,6 +21,8 @@ App 冷启的**唯一入口**：一次请求拿到「我是谁 / 我的凭证 / 
 | 幂等 | 按 `device_id` 去重 | 按 `Idempotency-Key` 去重（24h） |
 
 冷启的往返次数从 7 次（anonymous + me + region-config + config + popup-set + withdraw-page + popup decision）降到 1 次。
+
+> **v0.2 变更（2026-11-16）**：产品决定取消独立的配置接口。`GET /v1/config` 已从规范删除，`GET /v1/bootstrap`（基线 §4.5）与 `POST /v1/auth/anonymous`（基线 §5.1）同样不实现。规范内现在**只有 `POST /v1/app/bootstrap` 一个 path**：身份、会话、三段配置、启动弹窗全在这里。
 
 ---
 
@@ -98,6 +100,8 @@ request_id · server_time · identity · session · config{region,runtime,popups
 沿用基线 §5.1 / §5.3 的既有机制（Access 30 天 + Refresh 90 天轮换），**没有新增认证体系**。字段名从 `token` 改成 `access_token` 是对齐你给的命名，同一物。
 
 ### 4.3 `config` 三段与版本比对
+
+> 配置**只在这里下发**。规范里没有、也不应该有 `/v1/config` 一类的独立路由——需要刷新就重新调用本接口并带 `config_versions`。
 
 三段**各自独立版本化**，各自返回 `status`：
 
@@ -238,16 +242,16 @@ S2S 回调验签通过 → 追加 50.000（第二条流水，grant_status → do
 
 按「会不会挡住开发」排序。**每一条我都没有擅自拍板业务规则**，只在契约里选了一个可解释的写法并在此标注。
 
-### C-01 · 响应形态有两套，且 code 类型不同（阻塞）
+### C-01 · 响应形态有两套，且 code 类型不同（已闭环）
 
 | | PRD 5.8 | 基线 §1.2 / §17 |
 |---|---|---|
 | 成功 | 无信封（未定义） | `{code:0, message:"ok", data:{}, request_id}` |
 | 错误 | `{code, message_pt, retryable}`，`code` 是**字符串** | `{code, message, data, request_id}`，`code` 是**整数**（40001/40101…） |
 
-本轮 Bootstrap 按 PRD 5.8 做（你的要求），`/v1/config` 保留基线信封。结果是同一份规范里两套形态并存。
+**已闭环（2026-11-16）**：按产品决定，`GET /v1/config` 从规范中**删除**，配置统一下沉到 Bootstrap 的 `config` 段。规范内不再存在整数码信封，`code` 只有字符串一套形态，客户端只需一个解析器。
 
-**建议**：以 PRD 5.8 为唯一口径，把基线 §1.2 / §17 整体迁移（字符串码 + `retryable`）。改动面是 `components.schemas` 一处 + 基线文档一章。**要我改就说一句**，我把 `/v1/config` 一起迁过来。
+遗留：基线文档 §1.2 / §17 / §4.1 仍是整数码 + `{code:0,...}` 的旧写法。基线是**字段语义**的权威，但路由取舍以规范为准 —— 下次编辑基线时把 §4.1 标废弃即可，其余章节随接口补齐时逐个迁移。
 
 ### C-02 · 时间字段格式（已决定，可一句话回滚）
 
@@ -291,20 +295,22 @@ S2S 回调验签通过 → 追加 50.000（第二条流水，grant_status → do
 
 **待确认**：report 增加 `delivery_id`，或约定埋点 `popup_show` 必带 `delivery_id`。两者选一，客户端才能把投递闭环。
 
-### C-07 · `device_id` 归属反转（阻塞，影响旧接口）
+### C-07 · `device_id` 归属反转（已决议，影响旧接口）
 
 - 基线 §5.1：客户端自报 `device_id`，服务端「同一 device_id 重复调用返回同一 user_id」
 - 本契约：服务端签发，客户端**无处可传**
 
 如果 `/v1/auth/anonymous` 继续存在，就会出现两套建号路径：一个认客户端 ID、一个发服务端 ID，同一个用户可能被判成两个账户。
 
-**待确认**：`/v1/auth/anonymous` 是否随 Bootstrap 上线而废弃。若不废弃，必须明确「哪个是建号入口」，另一个降级为纯 token 刷新。
+**已决议（2026-11-16）**：`/v1/auth/anonymous` **废弃**。Bootstrap 是唯一的建号入口，`device_id` 只由服务端签发。保留的认证类接口只有 `POST /v1/auth/google`（正式登录）与 `POST /v1/auth/refresh`（续期），两者都不创建账户。
 
 ### C-08 · 两个 bootstrap 入口
 
-基线 §4.5 定义了 `GET /v1/bootstrap`（含 `wallet` / `tasks` / `ETag` 304），与本契约是两套设计。我没有在规范里加那个接口，避免两个入口并存。
+基线 §4.5 定义了 `GET /v1/bootstrap`（含 `wallet` / `tasks` / `ETag` 304），与本契约是两套设计。
 
-**待确认**：§4.5 废弃，还是保留为「局部刷新」（`scope=config,region`）？若保留，两者同名字段必须逐字一致 —— 而现在 `region` 的字段集就不同（§4.2 含 `fx` / `min_payout_coins`，本契约不含，见 C-09）。
+**已决议（2026-11-16）**：§4.5 的 `GET /v1/bootstrap` **不实现**；「局部刷新」这条路也**一并放弃**——配置不单独开路由，需要刷新就重新调用 `POST /v1/app/bootstrap` 并带上 `config_versions`。`ETag / 304` 在 §4.2 的 `region` 段有 `version` 可以替代，不引入两套缓存协商。
+
+钱包（`wallet`）与任务（`tasks`）留在各自接口（基线 §4.7 / §4.8），不进 Bootstrap：冷启快照里的余额不能拿去做提现判断（见 4 节说明）。
 
 ### C-09 · 区域包里的金额字段（已决定，附理由）
 
@@ -367,8 +373,8 @@ S2S 回调验签通过 → 追加 50.000（第二条流水，grant_status → do
 
 | # | 问题 | 阻塞谁 | 关联 |
 |---|---|---|---|
-| Q-01 | 统一错误形态（PRD 5.8 vs 基线信封），`code` 用字符串还是整数 | 客户端解析器 / 后端 | C-01 |
-| Q-02 | `/v1/auth/anonymous` 与 `GET /v1/bootstrap` 是否废弃 | 后端建号路径 | C-07 C-08 |
+| ~~Q-01~~ | ~~统一错误形态~~ **已定**：字符串码，`/v1/config` 已删，整数码信封不再出现在规范里 | — | C-01 |
+| ~~Q-02~~ | ~~旧入口是否废弃~~ **已定**：两个都废弃，Bootstrap 是唯一建号与配置入口 | — | C-07 C-08 |
 | Q-03 | trigger 白名单是 6 种还是 9 种 | 弹窗配置后台 | C-03 |
 | Q-04 | `double.daily_cap` 补进 5.12 参数表；额度池扣减顺序 | 客户端频控 | C-04 |
 | Q-05 | `max_lifetime` 的 `week` 是自然周还是滚动 7 天 | 客户端频控 | C-05 |
@@ -398,7 +404,7 @@ Q-09 是我在写契约时发现的真空白：礼包在**建号事务内**就�
 | 9 | 配置版本比对完整 | 三段独立 `version` + `status` + `config_versions` 入参 + `if/then` 条件必填 |
 | 10 | 未重新引入首开承诺弹窗 | 无 `onb_promise` 的枚举值或示例；仅两处 schema description 里作为**废弃声明**出现（「已按 BF-01-08 删除，不要再下发」）。全文无 `promise.mode`、无 200.000 金额 |
 | 11 | 固定汇率/奖励/门槛未做成热更参数 | runtime 只有 7 个上限类 key；金额红线在 description 与 §4.3 双重声明 |
-| 12 | 未破坏其他已有接口 | `/v1/config` 逐字段比对未变（paths / schemas / parameters / servers 全 equal） |
+| 12 | 未破坏其他已有接口 | 规范内已无其他接口；删除 `/v1/config` 是产品决定，见 C-01。剩余 4 个孤儿 schema / 4 个参数 / 3 个响应已一并清理，`$ref` 25 个无断链、无未引用组件 |
 
 ---
 
@@ -406,7 +412,7 @@ Q-09 是我在写契约时发现的真空白：礼包在**建号事务内**就�
 
 | 文件 | 动作 |
 |---|---|
-| `public/api/openapi.json` | **新增**（0.2.0，含 Bootstrap + Config） |
+| `public/api/openapi.json` | **新增**（0.3.0，仅 Bootstrap；`/v1/config` 已移除） |
 | `public/api/openapi.yaml` | **删除**（已完整并入 json，git 历史可追） |
 | `public/api/index.html` | Scalar 加载路径改为 `openapi.json` |
 | `redocly.yaml` | **新增**（关掉一条对 `if/then` 误报的规则，附原因） |

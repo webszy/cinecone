@@ -2,11 +2,11 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CineCoin API",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "summary": "短剧网赚 App 自研业务接口",
-    "description": "面向巴西市场（BR / BRL / pt-BR）的短剧 App 业务接口。用户看剧赚金币，\n金币按固定汇率折算现金后经 PIX 提现，广告是唯一变现路径。\n\n## 与第三方内容接口的区别\n本规范只覆盖**自研业务接口**（`/v1/*`），统一响应包为\n`{\"code\":0,\"message\":\"ok\",\"data\":{},\"request_id\":\"...\"}`，`code = 0` 才是成功。\n\n短剧内容（剧目 / 分集 / 播放地址）来自第三方\n`https://api.salesmarto.com/app-api/drama`，其响应包是\n`{\"code\":200,\"msg\":\"...\",\"data\":{}}` —— **两套包不同**，适配层必须转换，\n不要把第三方的 `200` 当业务码混用。\n\n## 金额口径（红线，不可配）\n- 账本以 **moedas（金币，integer）** 记账，永不用浮点\n- 汇率 `10.000 moedas = R$ 1,00`，是**发布常量**，后台不提供修改入口\n- 展示金额由服务端算好下发，**客户端不得自行做币→现金换算**\n- 提现四档：50.000 / 100.000 / 300.000 / 500.000 moedas = R$ 5 / 10 / 30 / 50\n\n## 时间口径\n接口时间统一 **UTC 毫秒时间戳**；业务日按 `America/Sao_Paulo`（UTC−3）00:00 切分。\n\n## 通用降级\n写接口一律不自动重试，只允许用户手动重试且复用同一幂等键。\n\n## 域名状态（重要）\n正式 API 域名**尚未确定**，下文 `servers` 里的地址是**占位域名**，\n不可用于真实请求，也无法调试通过。域名定档后只需替换 `servers[0].url`，\n路径、参数、响应结构均不受影响。\n\n## 响应形态（本轮变更）\n`POST /v1/app/bootstrap` 按 PRD 5.8 的约定返回**扁平业务对象**，错误体为\n`{code, message_pt, retryable}`（`code` 是字符串枚举）；`GET /v1/config`\n仍是平台信封 `{code:0,message,data,request_id}`（`code` 是整数）。\n两套形态并存是历史遗留，统一方案待产品确认；客户端按接口分别解析，不要写一个通用解析器。\n",
+    "description": "面向巴西市场（BR / BRL / pt-BR）的短剧 App 业务接口。用户看剧赚金币，\n金币按固定汇率折算现金后经 PIX 提现，广告是唯一变现路径。\n\n## 本规范只定义「一个」接口\n`POST /v1/app/bootstrap`，它是 App 冷启的**唯一入口**：身份、会话、区域配置、\n运行时配置、弹窗配置、启动弹窗，一次请求全部下发。\n\n**没有独立的配置接口。** 不要去找 `/v1/config`、`/v1/region-config` 这类路由——\n配置的获取与刷新都走 Bootstrap：把本地版本填进 `config_versions` 重新调用，\n未变化的段服务端只回 `not_modified`，不回整包。\n\n短剧内容（剧目 / 分集 / 播放地址）来自第三方\n`https://api.salesmarto.com/app-api/drama`，其响应包是\n`{\"code\":200,\"msg\":\"...\",\"data\":{}}` —— 与本接口的响应形态不同，适配层必须转换，\n不要把第三方的 `200` 当本接口的成功标志。\n\n## 金额口径（红线，不可配）\n- 账本以 **moedas（金币，integer）** 记账，永不用浮点\n- 汇率 `10.000 moedas = R$ 1,00`，是**发布常量**，后台不提供修改入口\n- 展示金额由服务端算好下发，**客户端不得自行做币→现金换算**\n- 提现四档：50.000 / 100.000 / 300.000 / 500.000 moedas = R$ 5 / 10 / 30 / 50\n\n## 时间口径\n接口时间统一 **UTC 毫秒时间戳**；业务日按 `America/Sao_Paulo`（UTC−3）00:00 切分。\n\n## 通用降级\n写接口一律不自动重试，只允许用户手动重试且复用同一幂等键。\n\n## 域名状态（重要）\n正式 API 域名**尚未确定**，下文 `servers` 里的地址是**占位域名**，\n不可用于真实请求，也无法调试通过。域名定档后只需替换 `servers[0].url`，\n路径、参数、响应结构均不受影响。\n\n## 响应形态\n成功响应是**扁平业务对象**，没有 `data` 信封；错误响应是\n`{code, message_pt, retryable, request_id}`，按 PRD 5.8，`code` 为**字符串枚举**\n（如 `TOKEN_EXPIRED`），不是整数码。客户端只实现这一套解析器。\n",
     "x-api-baseline": "v1.2（public/api/10-统一接口文档-v1.0.md）",
-    "x-doc-status": "部分实现：已完成 Bootstrap 与 Config 两个分组，其余分组待补",
+    "x-doc-status": "仅定义 Bootstrap（唯一入口）：`POST /v1/app/bootstrap`，其余分组待补",
     "x-server-status": "placeholder — 正式 API 域名待定",
     "license": {
       "name": "Proprietary",
@@ -16,17 +16,13 @@
   "servers": [
     {
       "url": "https://api.test.com",
-      "description": "**占位域名，非真实可用地址。** 正式 API 域名尚未确定，此处仅占位，\n照此地址发请求会失败（DNS 无法解析 / 无对应服务）。\n\n域名定档后替换 `servers[0].url` 即可，路径与参数不受影响。\n全部 `/v1/*` 需 Bearer token（游客为匿名 token）。\n"
+      "description": "**占位域名，非真实可用地址。** 正式 API 域名尚未确定，此处仅占位，\n照此地址发请求会失败（DNS 无法解析 / 无对应服务）。\n\n域名定档后替换 `servers[0].url` 即可，路径与参数不受影响。\n首次安装不带 `Authorization`，token 由本接口签发；之后所有请求带\n`Authorization: Bearer <session.access_token>`。\n"
     }
   ],
   "tags": [
     {
       "name": "Bootstrap",
-      "description": "App 冷启初始化。身份 + 会话 + 三段配置 + 启动弹窗，一次请求拿全。\n\n与「配置下发」的分工：Bootstrap 是**冷启聚合**，`/v1/config` 等是**局部刷新**。\n冷启走 Bootstrap 一次就够，不要在冷启后再串行打一遍 4.1–4.3。\n"
-    },
-    {
-      "name": "Config",
-      "description": "配置下发。运营可改的那一半参数，客户端不写死、不发版即可调。\n\n与「策略决策」的分工：配置是运营可改的静态值，决策是运行时算出的结果，\n两者都用**单调递增 version**，客户端只按 version 覆盖缓存，不回落到旧版。\n"
+      "description": "App 冷启初始化，也是**配置下发的唯一入口**。身份 + 会话 + 三段配置 +\n启动弹窗，一次请求拿全。\n\n配置不单独开接口：区域 / 运行时 / 弹窗三块配置都在本接口的 `config` 里返回，\n各自带 `status`（`updated` / `not_modified` / `unavailable`）与 `version`。\n客户端把本地版本填进 `config_versions`，未变化的段服务端只回状态，不回整包。\n\n冷启只打这一次，不要再串行去打「拿配置」的接口。\n"
     }
   ],
   "paths": {
@@ -39,12 +35,9 @@
         "operationId": "postAppBootstrap",
         "description": "App 全局初始化入口。每次**冷启动**调用一次，替代「匿名登录 + /me +\n三段配置 + 弹窗决策」的多次往返。\n\n### 一次请求完成 7 件事\n\n1. 匿名游客账户创建 / 已有用户身份恢复\n2. Session 校验与恢复（失效走 `POST /v1/auth/refresh`，本接口**不静默新建账户**）\n3. 当前用户基础资料\n4. 当前国家区域配置 `config.region`\n5. 运行时业务配置 `config.runtime`\n6. 全局弹窗规则 `config.popups`（规则集，不是展示结论）\n7. 启动阶段待展示弹窗 `startup.popups`（服务端判定资格后下发）\n\n### 三种身份分支\n\n| 请求 | 服务端行为 | 关键返回 |\n|---|---|---|\n| 无 `Authorization` | 创建游客账户 + 服务端生成 `device_id` + 匿名 Session；按 BF-01-04 建一条 `welcome` 账本流水（入账即冻结） | `account_type=guest`、`is_new_account=true`、`startup.popups` 含 `welcome_gift` |\n| 有效游客 Token | 恢复原游客账户，不新建、不重发礼包 | `account_type=guest`、`is_new_account=false` |\n| 有效正式 Token | 恢复正式用户，`profile` 带 `display_name` / `avatar_url` | `account_type=google`、`is_guest=false` |\n\n### 幂等（首次安装必须）\n\n`Idempotency-Key` 在无 Token 时必填。同一 key 24h 内只创建一个账户、\n只发放一次新人礼包；同 key 同 body 重放返回首次结果（含**同一个** Token 与\n`delivery_id`），同 key 不同 body 返回 `409 IDEMPOTENCY_CONFLICT`。\n\n### 三条硬约束\n\n- `device_id` **只能由服务端生成**，不接受客户端提交的 `device_id` 作为身份凭证；\n  也不允许仅凭客户端提交的 `device_id` 恢复账户。\n- Token 无效 / 过期**不允许静默降级为新建游客**（否则用户余额「消失」），\n  返回 `TOKEN_INVALID` / `TOKEN_EXPIRED`，客户端先去 `POST /v1/auth/refresh`。\n- GeoIP 由服务端按请求来源 IP 判定，**不采信**客户端上传的 IP；\n  检出 VPN 只打风控标记、不切区域（BF-11-01），避免「挂 VPN 换高奖励区」。\n\n### 配置三段的版本语义\n\n`config.region` / `config.runtime` / `config.popups` 各自独立版本化，各自返回：\n\n| status | 含义 | 客户端动作 |\n|---|---|---|\n| `updated` | 版本高于客户端所报版本（或客户端未报） | 整包替换本地缓存 |\n| `not_modified` | 版本与客户端所报一致 | 保留缓存，不发请求、不写盘 |\n| `unavailable` | 该段读取失败，本次拿不到 | 读磁盘缓存，无缓存用内置默认 |\n\n`not_modified` 时**不返回 `values`**，客户端不要按「缺字段」当异常。\n服务端保证**整包校验、不回退、不部分生效**：某段内容坏一条就整段不下发\n（降级为 `unavailable`），绝不下发半份配置。\n\n### 与旧定义的差异\n\n基线文档 §4.5 的 `GET /v1/bootstrap`（含 wallet / tasks / ETag 304）与本接口\n是**两套设计**，不要并行实现。本接口只负责启动必需项，余额仍只从\n`GET /v1/wallet` 读（余额绝不出现在 Bootstrap 里）。\n",
         "security": [
+          {},
           {
-          },
-          {
-            "bearerAuth": [
-
-            ]
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -381,9 +374,7 @@
                         }
                       },
                       "startup": {
-                        "popups": [
-
-                        ]
+                        "popups": []
                       }
                     }
                   },
@@ -461,9 +452,7 @@
                         }
                       },
                       "startup": {
-                        "popups": [
-
-                        ]
+                        "popups": []
                       }
                     }
                   }
@@ -602,7 +591,7 @@
             }
           },
           "503": {
-            "description": "配置加载失败：三段配置**全部**读不到版本，服务端整包判定失败。\n\n为什么整包失败而不是降级：配置是「要么完整要么不下发」的包，\n给半份会让客户端按错的频控跑（比如只拿到激励 15、丢了 hard_cap 40）。\n\n**单段失败不走这里**——那一段标 `status=unavailable` 返回 200，\n其余照常下发。只有三段全挂（配置存储整体不可用）才返回 503。\n\n服务端保证本次新建的账户已回滚、幂等键已释放，客户端用同一键重试即可。\n客户端动作：走**完全离线路径**——磁盘缓存区域包 + 内置默认\n（15/12/1/1/50 + 三条兜底弹窗），超时阈值 1.5s（BF-01-07 / BF-11-01）。\n配置接口 500 不许导致白屏或「配置用完了」类报错文案（5.14 验收）。\n",
+            "description": "配置加载失败：三段配置**全部**读不到版本，服务端整包判定失败。\n\n为什么整包失败而不是降级：配置是「要么完整要么不下发」的包，\n给半份会让客户端按错的频控跑（比如只拿到激励 15、丢了 hard_cap 40）。\n\n**单段失败不走这里**——那一段标 `status=unavailable` 返回 200，\n其余照常下发。只有三段全挂（配置存储整体不可用）才返回 503。\n\n服务端保证本次新建的账户已回滚、幂等键已释放，客户端用同一键重试即可。\n客户端动作：走**完全离线路径**——磁盘缓存区域包 + 内置默认\n（15/12/1/1/50 + 三条兜底弹窗），超时阈值 1.5s（BF-01-07 / BF-11-01）。\n配置读取失败不许导致白屏或「配置用完了」类报错文案（5.14 验收）。\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -624,120 +613,6 @@
           }
         }
       }
-    },
-    "/v1/config": {
-      "get": {
-        "tags": [
-          "Config"
-        ],
-        "operationId": "getConfig",
-        "summary": "拉取全局配置参数",
-        "description": "拉取当前用户命中的配置包。下发按 **国家 / app_version / 渠道 / 用户分层**\n四个维度命定，同一用户同一时刻只命中一份。\n\n### 缓存与兜底\n- `version` 单调递增，客户端只按 version 覆盖磁盘缓存，**不回落到旧版**\n  （旧版可能包含已被后台回滚的错误参数）\n- 兜底顺序：接口 → 磁盘缓存 → 内置默认（集中的 `ConfigDefaults` 对象，\n  禁止把默认值散落在业务分支里）\n- 接口整体失败不影响短剧播放与计币，只让广告走内置默认频控（见 17 章降级矩阵）\n\n### 整包校验（服务端，坏一条拒全包）\n不允许部分生效。任一条不通过则**沿用上一版**下发，客户端无感：\n\n| 规则 | 违反处理 |\n|---|---|\n| 各 key 在合法区间内 | 整包拒绝，沿用上一版，5min 内告警 |\n| `reward + interstitial + appopen ≤ hard_cap` | 整包拒绝，后台提示冲突项 |\n| `hard_cap ∈ [30,60]` | 整包拒绝（防调到 999 变相关掉风控） |\n\n### 生效时间\n| 类型 | 生效 |\n|---|---|\n| 日上限（`ad.*.daily_cap`） | 次日 00:00 BRT，且**不清零当日已用次数** |\n| 小时级（`ad.appopen.hourly_cap`）、`invite.settle_max` | 立即 |\n| `ad.total.hard_cap` | 下次冷启 |\n\n### 不在本接口内（红线，做成按钮等于把「偷用户钱」做成功能）\n汇率 / 单次奖励币数 / 提现门槛与档位 / 提现 SLA 与加速上限 /\nKYC 强度 / 进度条分段系数 —— 一律不下发、不可配。\n",
-        "security": [
-          {
-            "bearerAuth": [
-
-            ]
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Scope"
-          },
-          {
-            "$ref": "#/components/parameters/DeviceId"
-          },
-          {
-            "$ref": "#/components/parameters/AppVersion"
-          },
-          {
-            "$ref": "#/components/parameters/Region"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "命中配置包。`values` 中仅包含本次 `scope` 覆盖的分组。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigResponse"
-                },
-                "examples": {
-                  "adAndInvite": {
-                    "summary": "scope=ad,invite（基线 4.1 原例）",
-                    "value": {
-                      "code": 0,
-                      "message": "ok",
-                      "request_id": "req_01HQ8Z3K4M9VX2T",
-                      "data": {
-                        "version": 42,
-                        "effective_at": 1762905600000,
-                        "values": {
-                          "ad.reward.daily_cap": 15,
-                          "ad.interstitial.daily_cap": 12,
-                          "ad.appopen.hourly_cap": 1,
-                          "ad.appopen.daily_cap": 1,
-                          "ad.total.hard_cap": 40,
-                          "invite.settle_max": 50
-                        }
-                      }
-                    }
-                  },
-                  "all": {
-                    "summary": "scope 省略或 =all",
-                    "value": {
-                      "code": 0,
-                      "message": "ok",
-                      "request_id": "req_01HQ8Z3K4M9VX3A",
-                      "data": {
-                        "version": 43,
-                        "effective_at": 1762909200000,
-                        "values": {
-                          "ad.reward.daily_cap": 15,
-                          "ad.interstitial.daily_cap": 12,
-                          "ad.appopen.hourly_cap": 1,
-                          "ad.appopen.daily_cap": 1,
-                          "ad.total.hard_cap": 40,
-                          "invite.settle_max": 50
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "500": {
-            "description": "服务端异常（`50001`）。配置接口故障不影响短剧播放与计币，\n广告按内置默认频控、弹窗走内置 3 条兜底。客户端读磁盘缓存，无缓存用内置默认。\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "serverError": {
-                    "value": {
-                      "code": 50001,
-                      "message": "internal error",
-                      "request_id": "req_01HQ8Z3K4M9VX4B",
-                      "data": null
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -746,63 +621,10 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "游客为匿名 token（`POST /v1/auth/anonymous` 换取，TTL 30 天，静默续期）。\n\n返回 `40101` 时：客户端**静默**重新 anonymous 并重放一次原请求，\n不弹登录、不清本地数据。\n"
+        "description": "游客 token 由**本接口自己签发**：首次安装不带 `Authorization` 调用，\n成功后响应里的 `session.access_token` 就是后续请求要带的凭证\n（有效期见 `session.expires_at`）。已登录用户带的是 Google 登录换来的正式 token\n（`POST /v1/auth/google`，基线 §5.2）。\n\n- `TOKEN_EXPIRED`：先调 `POST /v1/auth/refresh`（基线 §5.3），刷新成功后\n  **用同一个 `Idempotency-Key`** 重放本请求。\n- `TOKEN_INVALID`：**不得静默新建游客账户**，否则同一设备会被判成两个账户。\n"
       }
     },
     "parameters": {
-      "Scope": {
-        "name": "scope",
-        "in": "query",
-        "required": false,
-        "description": "需要的配置分组，逗号分隔。不传等价于 `all`。\n\n未在 `scope` 内的分组不会出现在 `values` 里 —— 客户端必须能处理\n「只拿到部分分组」的情况，不能假定某个 key 一定存在。\n",
-        "schema": {
-          "type": "string",
-          "default": "all",
-          "pattern": "^(all|(ad|invite)(,(ad|invite))*)$",
-          "examples": [
-            "ad,invite"
-          ]
-        }
-      },
-      "DeviceId": {
-        "name": "X-Device-Id",
-        "in": "header",
-        "required": true,
-        "description": "安装级 UUID，卸载重装即变更。用于渠道归属与用户分层命中。",
-        "schema": {
-          "type": "string",
-          "minLength": 8,
-          "examples": [
-            "8f3a2c10-4b6d-4e91-9c77-0a1b2c3d4e5f"
-          ]
-        }
-      },
-      "AppVersion": {
-        "name": "X-App-Version",
-        "in": "header",
-        "required": true,
-        "description": "客户端版本，格式 `版本号 (构建号)`。\n配置按 app_version 分层下发，缺这个头会命中错误的配置包。\n",
-        "schema": {
-          "type": "string",
-          "pattern": "^\\d+\\.\\d+\\.\\d+ \\(\\d+\\)$",
-          "examples": [
-            "1.0.3 (103)"
-          ]
-        }
-      },
-      "Region": {
-        "name": "X-Region",
-        "in": "header",
-        "required": false,
-        "description": "客户端自报区域，仅作参考。服务端以 SIM 的 MCC（免权限）→ GeoIP 判定为准，\n不一致时**以服务端为准**。\n",
-        "schema": {
-          "type": "string",
-          "pattern": "^[A-Z]{2}$",
-          "examples": [
-            "BR"
-          ]
-        }
-      },
       "IdempotencyKey": {
         "name": "Idempotency-Key",
         "in": "header",
@@ -816,260 +638,7 @@
         }
       }
     },
-    "responses": {
-      "BadRequest": {
-        "description": "参数缺失或格式错（`40001`）。不重试，埋点后提示用户。",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "badScope": {
-                "summary": "scope 传了未定义的分组",
-                "value": {
-                  "code": 40001,
-                  "message": "invalid scope: popup",
-                  "request_id": "req_01HQ8Z3K4M9VX5C",
-                  "data": null
-                }
-              }
-            }
-          }
-        }
-      },
-      "Unauthorized": {
-        "description": "token 失效（`40101`）。客户端静默重新 anonymous 并重放一次。",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "expired": {
-                "value": {
-                  "code": 40101,
-                  "message": "token expired",
-                  "request_id": "req_01HQ8Z3K4M9VX6D",
-                  "data": null
-                }
-              }
-            }
-          }
-        }
-      },
-      "RateLimited": {
-        "description": "频控命中（`42901`）。必须显示 `retry_after_ms` 且**不自行放宽**重试间隔。\n",
-        "headers": {
-          "Retry-After": {
-            "description": "建议等待秒数，与 `data.retry_after_ms` 同源。",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        },
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "tooMany": {
-                "value": {
-                  "code": 42901,
-                  "message": "too many requests",
-                  "request_id": "req_01HQ8Z3K4M9VX7E",
-                  "data": {
-                    "retry_after_ms": 3000
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "schemas": {
-      "ConfigResponse": {
-        "type": "object",
-        "description": "统一响应包（`code = 0` 为成功）。",
-        "required": [
-          "code",
-          "message",
-          "data",
-          "request_id"
-        ],
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "业务码。`0` 成功，其余见基线 17 章错误码表。",
-            "enum": [
-              0
-            ]
-          },
-          "message": {
-            "type": "string",
-            "examples": [
-              "ok"
-            ]
-          },
-          "request_id": {
-            "type": "string",
-            "description": "请求链路标识，客户端日志与后台审计用它串链路。",
-            "examples": [
-              "req_01HQ8Z3K4M9VX2T"
-            ]
-          },
-          "data": {
-            "$ref": "#/components/schemas/ConfigData"
-          }
-        }
-      },
-      "ConfigData": {
-        "type": "object",
-        "required": [
-          "version",
-          "effective_at",
-          "values"
-        ],
-        "properties": {
-          "version": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "配置包版本，**单调递增**。客户端只按 version 覆盖磁盘缓存，不回落到旧版\n（旧版可能包含已被后台回滚的错误参数）。\n",
-            "examples": [
-              42
-            ]
-          },
-          "effective_at": {
-            "type": "integer",
-            "format": "int64",
-            "description": "本版本下发时间，UTC 毫秒。注意它不等于「各 key 生效时间」——\n日上限类参数是次日 00:00 BRT 才生效。\n",
-            "examples": [
-              1762905600000
-            ]
-          },
-          "values": {
-            "$ref": "#/components/schemas/ConfigValues"
-          }
-        }
-      },
-      "ConfigValues": {
-        "type": "object",
-        "description": "键值对形式的配置项，键名用点分层级：`分组.子项.属性`。\n\n**只包含本次 `scope` 覆盖的分组**，客户端不得假定任一 key 必然存在，\n缺失时回落到磁盘缓存或内置默认。\n\n当前可配项全部为 integer。弹窗集、提现页 A/B、奖励参数、策略参数等\n结构化配置**不在本接口**内，分别走 `/v1/popup-set`、`/v1/withdraw-page`、\n`/v1/strategy/decide`。\n",
-        "properties": {
-          "ad.reward.daily_cap": {
-            "type": "integer",
-            "description": "激励视频日上限（次）。次日 00:00 BRT 生效，不清零当日已用次数。",
-            "default": 15,
-            "minimum": 0,
-            "maximum": 25,
-            "examples": [
-              15
-            ]
-          },
-          "ad.interstitial.daily_cap": {
-            "type": "integer",
-            "description": "插屏日上限（次）。次日 00:00 BRT 生效。",
-            "default": 12,
-            "minimum": 0,
-            "maximum": 20,
-            "examples": [
-              12
-            ]
-          },
-          "ad.appopen.hourly_cap": {
-            "type": "integer",
-            "description": "开屏广告每小时上限（次）。立即生效。",
-            "default": 1,
-            "minimum": 0,
-            "maximum": 3,
-            "examples": [
-              1
-            ]
-          },
-          "ad.appopen.daily_cap": {
-            "type": "integer",
-            "description": "开屏广告每日上限（次）。次日 00:00 BRT 生效。",
-            "default": 1,
-            "minimum": 0,
-            "maximum": 3,
-            "examples": [
-              1
-            ]
-          },
-          "ad.total.hard_cap": {
-            "type": "integer",
-            "description": "全广告位硬上限（次）。校验约束 `reward + interstitial + appopen ≤ hard_cap`，\n且锁定区间 `[30,60]` —— 锁 60 是为了防止把风控变相关掉。下次冷启生效。\n",
-            "default": 40,
-            "minimum": 30,
-            "maximum": 60,
-            "examples": [
-              40
-            ]
-          },
-          "invite.settle_max": {
-            "type": "integer",
-            "description": "可结算提现的邀请人数上限（人）。立即生效。",
-            "default": 50,
-            "minimum": 0,
-            "maximum": 200,
-            "examples": [
-              50
-            ]
-          }
-        },
-        "additionalProperties": {
-          "type": "integer"
-        }
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "description": "统一错误包。`code` 非 0，`data` 通常为 `null`。",
-        "required": [
-          "code",
-          "message",
-          "request_id"
-        ],
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "业务错误码，见基线 17 章。同一 `code` 对应固定客户端动作。",
-            "examples": [
-              40001
-            ]
-          },
-          "message": {
-            "type": "string",
-            "description": "面向开发者的英文说明，**不可直接展示给用户**（用户文案走本地化）。",
-            "examples": [
-              "invalid scope: popup"
-            ]
-          },
-          "request_id": {
-            "type": "string",
-            "examples": [
-              "req_01HQ8Z3K4M9VX5C"
-            ]
-          },
-          "data": {
-            "description": "错误时一般为 `null`；`42901` 时带 `retry_after_ms`。",
-            "type": [
-              "object",
-              "null"
-            ],
-            "properties": {
-              "retry_after_ms": {
-                "type": "integer",
-                "description": "建议重试间隔，毫秒。仅 `42901` 返回。",
-                "examples": [
-                  3000
-                ]
-              }
-            }
-          }
-        }
-      },
       "BootstrapRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -1206,7 +775,7 @@
           "config",
           "startup"
         ],
-        "description": "Bootstrap 成功响应。扁平结构（无 `data` 信封），与 PRD 5.8 的错误体\n`{code, message_pt, retryable}` 配套。\n\n**余额不在这里**：`/v1/me` 只放身份与行为状态、钱只从 `GET /v1/wallet` 读，\n这条硬约束同样适用 Bootstrap——冷启快照不能拿去做提现判断。\n",
+        "description": "Bootstrap 成功响应。扁平结构（无 `data` 信封），与 PRD 5.8 的错误体\n`{code, message_pt, retryable}` 配套。\n\n**余额不在这里**：本接口只放身份、配置与待展示弹窗，**不含任何余额或金币流水**。\n钱只能从钱包接口读（基线 §4.7 `GET /v1/wallet`），冷启快照不能拿去做提现判断。\n",
         "properties": {
           "request_id": {
             "type": "string",
@@ -1744,7 +1313,7 @@
             "minimum": 30,
             "maximum": 60,
             "default": 40,
-            "description": "全广告位日展示硬上限（防刷，MZ-01-04）。默认 40，区间 **30–60 锁死**（上限锁 60 是防止调到 999 变相关掉风控），下次冷启生效。"
+            "description": "全广告位日展示硬上限（防刷，MZ-01-04）。默认 40，区间 **30–60 锁死**（上限锁 60 是防止调到 999 变相关掉风控），下次冷启生效。 校验约束 `reward + interstitial + appopen ≤ hard_cap`，任一项超限则整包拒绝发布。"
           },
           "invite.settle_max": {
             "type": "integer",
@@ -2383,7 +1952,7 @@
           "retryable",
           "request_id"
         ],
-        "description": "Bootstrap 错误体，遵循 **PRD 5.8**：`{code, message_pt, retryable}`，\n外加平台统一的 `request_id`（基线 §1.2 要求所有响应可串链路）。\n\n| 与现有 `/v1/config` 错误体的区别 | 本接口 | `/v1/config` |\n|---|---|---|\n| `code` 类型 | 字符串枚举 | 整数（40001 / 40101 …） |\n| 信封 | 无 | `{code, message, data, request_id}` |\n\n两套形态并存是历史遗留，统一方案待确认（见交付说明 C-01）。\n客户端**不要**写一个通用解析器覆盖两者。\n",
+        "description": "Bootstrap 错误体，遵循 **PRD 5.8**：`{code, message_pt, retryable}`，\n外加平台统一的 `request_id`（基线 §1.2 要求所有响应可串链路）。\n\n`code` 是**字符串枚举**（如 `TOKEN_EXPIRED`、`IDEMPOTENCY_CONFLICT`），\n不是整数码。从旧接口迁过来的客户端注意别把 `code` 当数字比较。\n",
         "properties": {
           "code": {
             "type": "string",
