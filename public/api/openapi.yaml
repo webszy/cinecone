@@ -37,15 +37,28 @@ info:
 
     ## 通用降级
     写接口一律不自动重试，只允许用户手动重试且复用同一幂等键。
+
+    ## 域名状态（重要）
+    正式 API 域名**尚未确定**，下文 `servers` 里的地址是**占位域名**，
+    不可用于真实请求，也无法调试通过。域名定档后只需替换 `servers[0].url`，
+    路径、参数、响应结构均不受影响。
   x-api-baseline: "v1.2（public/api/10-统一接口文档-v1.0.md）"
   x-doc-status: "部分实现：已完成 Config 分组，其余分组待补"
+  x-server-status: "placeholder — 正式 API 域名待定"
   license:
     name: Proprietary
     identifier: LicenseRef-Proprietary
 
 servers:
-  - url: https://api.cinecoin.app
-    description: 生产环境。全部 `/v1/*` 需 Bearer token（游客为匿名 token）
+  # ⚠️ 占位域名：正式 API 域名尚未确定，api.test.com 不可用于真实请求。
+  # 域名定档后只替换本行 url 即可，其余内容无需改动。
+  - url: https://api.test.com
+    description: |
+      **占位域名，非真实可用地址。** 正式 API 域名尚未确定，此处仅占位，
+      照此地址发请求会失败（DNS 无法解析 / 无对应服务）。
+
+      域名定档后替换 `servers[0].url` 即可，路径与参数不受影响。
+      全部 `/v1/*` 需 Bearer token（游客为匿名 token）。
 
 tags:
   - name: Config

@@ -197,6 +197,7 @@ window.__CCAPI__    // 约 60 个动作：openWheel / openClaim / playEpisode / 
 
 1. **`openapi.yaml` 正在从零重建，目前只覆盖 1/46 个 path。** 占位规范（`example.invalid`）已于 2026-11-16 移除，现在的合同是真实的 `CineCoin API`，但只有 `GET /v1/config` 一个接口。真实基线在 `10-统一接口文档-v1.0.md`（46 path / 15 schema），按「配置 → 登录 → 观看计币 → 广告奖励 → 钱包提现」顺序逐步补齐。补齐前对外分享必须说明覆盖范围。
    - 改动后用 `npx --yes @redocly/cli@latest lint public/api/openapi.yaml` 校验，要求 0 error 0 warning。
+   - **`servers[0].url` 是占位域名 `https://api.test.com`**：正式 API 域名尚未确定。不要把示例地址当真实环境去联调；域名定档后只改这一行，并在 `info.x-server-status` 同步状态。基线文档里的 `api.cinecoin.app` 同样只是示意，没有实际部署。
 2. **`build.py` / `tools/snapshot.py` 缺失**（第 5 节）。想恢复可重复构建，需要按分片顺序重写一个拼接脚本，并加标签配平自检。
 3. **PRD 只有 v2.6.0 这一份，且是单文件**：`public/PRD/index.html`（标题 `CineCoin 产品需求文档 v2.6.0 · 两大模块`）已入库，但基线文档引用的 `拆解/` 目录（策略平台 PRD、`openapi-v1.json`、PRD 的历史版本）**仍不在本仓库**。原型 README 里写「对应 PRD v2.6.0」，而正文引用的文件名仍是 `CineCoin-PRD-v2.4` —— 这是历史命名，不代表版本倒退。
 4. **接口未开 CORS**：`api.salesmarto.com` 不返回 `Access-Control-Allow-Origin`，浏览器实时拉取会被拦，所以构建期快照是主路径，实时模式是"能成就更好"。别把实时拉取当依赖。
