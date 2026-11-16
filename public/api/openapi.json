@@ -83,6 +83,526 @@
     }
   ],
   "paths": {
+    "/v1/app/bootstrap": {
+      "post": {
+        "tags": [
+          "bootstrap"
+        ],
+        "operationId": "appBootstrap",
+        "summary": "Initialize identity, session, configuration and startup popup decisions",
+        "description": "Single cold-start entry point. No Authorization header: create a server-issued guest user/device/session once for this logical idempotent request. Valid backend guest or registered-user Bearer: restore that identity. A supplied malformed/expired/revoked Bearer must return 401, never fall through to anonymous creation. Never infer a registered session from device_id. Return identity, session, config and current startup deliveries only; no wallet/tasks/feed/unread aggregation. Config modules independently return updated or not_modified inside HTTP 200. Startup eligibility is always evaluated separately from config version. Cache-Control: no-store. Core identity and complete valid config requirements fail as an error, not a partially successful identity object; retries reuse the same key. Gift qualification/grant timing is C01, so the interface must not promise a grant just because it created a guest.\n\n配置唯一入口：region、runtime、popups 全部由本接口下发，刷新时重新调用并携带 config_versions。新增 config.wheel 转盘配置占位，沿用独立版本比较与 HTTP 200 内 updated/not_modified；奖池、概率、消耗及资格等业务字段待定，本占位不代表转盘已可启用。\n\nVersion comparison is scoped to the selected app/region/locale/version/channel/set. Equal versions from different selection contexts cannot be treated as unchanged. Validate each whole module before persistence; use the last valid local data on network/config failure. Configuration revisions never reset reward eligibility or display history.",
+        "security": [
+          {},
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/XAppVersion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapDataResponse"
+                },
+                "examples": {
+                  "first_install": {
+                    "summary": "First guest; welcome preview only until grant trigger C01 is approved.",
+                    "value": {
+                      "code": 0,
+                      "message": "ok",
+                      "data": {
+                        "identity": {
+                          "user_id": 1000123,
+                          "device_id": "dev_demo_install",
+                          "account_type": "guest",
+                          "is_guest": true,
+                          "profile": {
+                            "display_name": null,
+                            "avatar_url": null
+                          }
+                        },
+                        "session": {
+                          "session_id": "ses_demo_current",
+                          "access_token": "demo_nonfunctional_access_token",
+                          "token_type": "Bearer",
+                          "expires_at": 1797408000000,
+                          "refresh_token": "demo_nonfunctional_refresh_token",
+                          "refresh_expires_at": 1802592000000
+                        },
+                        "config": {
+                          "region": {
+                            "status": "updated",
+                            "version": 13,
+                            "data": {
+                              "region_code": "BR",
+                              "currency": "BRL",
+                              "coin_rate": 10000,
+                              "fx": 5,
+                              "business_timezone": "America/Sao_Paulo",
+                              "content_source_id": "src_br_01",
+                              "withdraw_page_set": [
+                                "wp_br_a",
+                                "wp_br_b"
+                              ],
+                              "popup_set": "br_default",
+                              "copy_pack": "br_pt",
+                              "channels": [
+                                "pix",
+                                "paypal"
+                              ],
+                              "min_payout_coins": 50000,
+                              "ad_units_ref": "br_units_v3",
+                              "version": 13
+                            }
+                          },
+                          "runtime": {
+                            "status": "updated",
+                            "version": 43,
+                            "data": {
+                              "version": 43,
+                              "effective_at": 1794812400000,
+                              "values": {
+                                "ad.reward.daily_cap": 15,
+                                "ad.interstitial.daily_cap": 12,
+                                "ad.appopen.hourly_cap": 1,
+                                "ad.appopen.daily_cap": 1,
+                                "ad.total.hard_cap": 40,
+                                "invite.settle_max": 50,
+                                "double.daily_cap": 3
+                              }
+                            }
+                          },
+                          "popups": {
+                            "status": "updated",
+                            "version": 43,
+                            "data": {
+                              "popup_set": "br_default",
+                              "version": 43,
+                              "items": [
+                                {
+                                  "id": "welcome_gift",
+                                  "enabled": true,
+                                  "trigger": {
+                                    "type": "app_open"
+                                  },
+                                  "priority": 100,
+                                  "group": "onboarding",
+                                  "conditions": {
+                                    "region": [
+                                      "BR"
+                                    ],
+                                    "new_user": true
+                                  },
+                                  "limits": {
+                                    "max_lifetime": 1
+                                  },
+                                  "template": "welcome_gift_v1",
+                                  "copy_pack": "br_pt"
+                                }
+                              ]
+                            }
+                          },
+                          "wheel": {
+                            "status": "updated",
+                            "version": 1,
+                            "data": {}
+                          }
+                        },
+                        "startup": {
+                          "popups": [
+                            {
+                              "delivery_id": "delivery_welcome_demo",
+                              "popup_id": "welcome_gift",
+                              "template": "welcome_gift_v1",
+                              "priority": 100,
+                              "group": "onboarding",
+                              "trigger": "app_open",
+                              "payload": {
+                                "reward": {
+                                  "base_coins": 50000,
+                                  "status": "not_granted",
+                                  "locked": false,
+                                  "ledger_id": null,
+                                  "unlock_condition": {
+                                    "type": "complete_first_series",
+                                    "valid_episodes": 3
+                                  }
+                                },
+                                "double_reward": {
+                                  "enabled": false,
+                                  "ad_required": true,
+                                  "additional_coins": 50000,
+                                  "target_total_coins": 100000,
+                                  "reason": "Aguardando elegibilidade do bonus inicial"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "server_time": 1794816000000
+                      },
+                      "request_id": "req_example"
+                    },
+                    "description": "转盘模块为版本信封示例，data 业务内容仅占位，不代表已上线规则。"
+                  },
+                  "returning_guest": {
+                    "summary": "Existing guest; all four config caches unchanged; no repeated gift.",
+                    "value": {
+                      "code": 0,
+                      "message": "ok",
+                      "data": {
+                        "identity": {
+                          "user_id": 1000123,
+                          "device_id": "dev_demo_install",
+                          "account_type": "guest",
+                          "is_guest": true,
+                          "profile": {
+                            "display_name": null,
+                            "avatar_url": null
+                          }
+                        },
+                        "session": {
+                          "session_id": "ses_demo_current",
+                          "access_token": "demo_nonfunctional_access_token",
+                          "token_type": "Bearer",
+                          "expires_at": 1797408000000
+                        },
+                        "config": {
+                          "region": {
+                            "status": "not_modified",
+                            "version": 13
+                          },
+                          "runtime": {
+                            "status": "not_modified",
+                            "version": 43
+                          },
+                          "popups": {
+                            "status": "not_modified",
+                            "version": 43
+                          },
+                          "wheel": {
+                            "status": "not_modified",
+                            "version": 1
+                          }
+                        },
+                        "startup": {
+                          "popups": []
+                        },
+                        "server_time": 1794816000000
+                      },
+                      "request_id": "req_example"
+                    },
+                    "description": "转盘模块为版本信封示例，data 业务内容仅占位，不代表已上线规则。"
+                  },
+                  "registered_user": {
+                    "summary": "Backend-issued registered-user session restored.",
+                    "value": {
+                      "code": 0,
+                      "message": "ok",
+                      "data": {
+                        "identity": {
+                          "user_id": 1000456,
+                          "device_id": "dev_demo_install",
+                          "account_type": "google",
+                          "is_guest": false,
+                          "profile": {
+                            "display_name": "Maria S.",
+                            "avatar_url": "https://cdn.cinecoin.app/avatar/example.png"
+                          }
+                        },
+                        "session": {
+                          "session_id": "ses_demo_current",
+                          "access_token": "demo_nonfunctional_access_token",
+                          "token_type": "Bearer",
+                          "expires_at": 1797408000000
+                        },
+                        "config": {
+                          "region": {
+                            "status": "not_modified",
+                            "version": 13
+                          },
+                          "runtime": {
+                            "status": "not_modified",
+                            "version": 43
+                          },
+                          "popups": {
+                            "status": "not_modified",
+                            "version": 43
+                          },
+                          "wheel": {
+                            "status": "not_modified",
+                            "version": 1
+                          }
+                        },
+                        "startup": {
+                          "popups": []
+                        },
+                        "server_time": 1794816000000
+                      },
+                      "request_id": "req_example"
+                    },
+                    "description": "转盘模块为版本信封示例，data 业务内容仅占位，不代表已上线规则。"
+                  },
+                  "eligible_granted_welcome": {
+                    "summary": "Illustration of a separately approved, already credited locked grant; not proof of unconditional guest issuance.",
+                    "value": {
+                      "code": 0,
+                      "message": "ok",
+                      "data": {
+                        "identity": {
+                          "user_id": 1000456,
+                          "device_id": "dev_demo_install",
+                          "account_type": "google",
+                          "is_guest": false,
+                          "profile": {
+                            "display_name": "Maria S.",
+                            "avatar_url": "https://cdn.cinecoin.app/avatar/example.png"
+                          }
+                        },
+                        "session": {
+                          "session_id": "ses_demo_current",
+                          "access_token": "demo_nonfunctional_access_token",
+                          "token_type": "Bearer",
+                          "expires_at": 1797408000000,
+                          "refresh_token": "demo_nonfunctional_refresh_token",
+                          "refresh_expires_at": 1802592000000
+                        },
+                        "config": {
+                          "region": {
+                            "status": "updated",
+                            "version": 13,
+                            "data": {
+                              "region_code": "BR",
+                              "currency": "BRL",
+                              "coin_rate": 10000,
+                              "fx": 5,
+                              "business_timezone": "America/Sao_Paulo",
+                              "content_source_id": "src_br_01",
+                              "withdraw_page_set": [
+                                "wp_br_a",
+                                "wp_br_b"
+                              ],
+                              "popup_set": "br_default",
+                              "copy_pack": "br_pt",
+                              "channels": [
+                                "pix",
+                                "paypal"
+                              ],
+                              "min_payout_coins": 50000,
+                              "ad_units_ref": "br_units_v3",
+                              "version": 13
+                            }
+                          },
+                          "runtime": {
+                            "status": "updated",
+                            "version": 43,
+                            "data": {
+                              "version": 43,
+                              "effective_at": 1794812400000,
+                              "values": {
+                                "ad.reward.daily_cap": 15,
+                                "ad.interstitial.daily_cap": 12,
+                                "ad.appopen.hourly_cap": 1,
+                                "ad.appopen.daily_cap": 1,
+                                "ad.total.hard_cap": 40,
+                                "invite.settle_max": 50,
+                                "double.daily_cap": 3
+                              }
+                            }
+                          },
+                          "popups": {
+                            "status": "updated",
+                            "version": 43,
+                            "data": {
+                              "popup_set": "br_default",
+                              "version": 43,
+                              "items": [
+                                {
+                                  "id": "welcome_gift",
+                                  "enabled": true,
+                                  "trigger": {
+                                    "type": "app_open"
+                                  },
+                                  "priority": 100,
+                                  "group": "onboarding",
+                                  "conditions": {
+                                    "region": [
+                                      "BR"
+                                    ],
+                                    "new_user": true
+                                  },
+                                  "limits": {
+                                    "max_lifetime": 1
+                                  },
+                                  "template": "welcome_gift_v1",
+                                  "copy_pack": "br_pt"
+                                }
+                              ]
+                            }
+                          },
+                          "wheel": {
+                            "status": "updated",
+                            "version": 1,
+                            "data": {}
+                          }
+                        },
+                        "startup": {
+                          "popups": [
+                            {
+                              "delivery_id": "delivery_welcome_demo",
+                              "popup_id": "welcome_gift",
+                              "template": "welcome_gift_v1",
+                              "priority": 100,
+                              "group": "onboarding",
+                              "trigger": "app_open",
+                              "payload": {
+                                "reward": {
+                                  "base_coins": 50000,
+                                  "status": "credited_locked",
+                                  "locked": true,
+                                  "ledger_id": "ledger_welcome_demo",
+                                  "unlock_condition": {
+                                    "type": "complete_first_series",
+                                    "valid_episodes": 3
+                                  }
+                                },
+                                "double_reward": {
+                                  "enabled": true,
+                                  "ad_required": true,
+                                  "additional_coins": 50000,
+                                  "target_total_coins": 100000,
+                                  "reason": null
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "server_time": 1794816000000
+                      },
+                      "request_id": "req_example"
+                    },
+                    "description": "转盘模块为版本信封示例，data 业务内容仅占位，不代表已上线规则。"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "Do not put sessions, user state, signed URLs or financial responses in shared HTTP caches. Configs use application-managed validated persistence."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        },
+        "x-sources": [
+          "previous-1.3.1:/v1/app/bootstrap post",
+          "interface-markdown:section 4.5 + confirmed conversation decisions"
+        ],
+        "x-contract-status": "review_required",
+        "x-open-issues": [
+          "C01",
+          "C04",
+          "C15"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapRequest"
+              },
+              "examples": {
+                "first_install": {
+                  "value": {
+                    "app_id": "cinecoin_br",
+                    "platform": "android",
+                    "app_version": "1.0.3",
+                    "build_number": 103,
+                    "os_version": "16",
+                    "locale": "pt-BR",
+                    "sim_country_code": "BR",
+                    "vpn_detected": false,
+                    "config_versions": {
+                      "region": 0,
+                      "runtime": 0,
+                      "popups": 0,
+                      "wheel": 0
+                    }
+                  }
+                },
+                "restored_session": {
+                  "value": {
+                    "app_id": "cinecoin_br",
+                    "platform": "android",
+                    "app_version": "1.0.3",
+                    "build_number": 103,
+                    "os_version": "16",
+                    "locale": "pt-BR",
+                    "sim_country_code": "BR",
+                    "vpn_detected": false,
+                    "config_versions": {
+                      "region": 13,
+                      "runtime": 43,
+                      "popups": 43,
+                      "wheel": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-idempotency": {
+          "scope": "app_id + authenticated identity (if present) + Idempotency-Key",
+          "first_install": "Persist the request key securely before sending. Same request cannot create multiple guests or grant multiple gifts. Key entropy must be unpredictable; never reuse keys across installations.",
+          "replay": "Return the original identity/grant outcome; no repeated mutation. Session validity must still be checked. Retention and expired-session replay response need implementation approval."
+        },
+        "x-design-additions": [
+          "session.session_id",
+          "independent_module_results_with_consistent_data_shape",
+          "actual_welcome_reward_state_without_unconditional_grant"
+        ]
+      }
+    },
     "/api/admin/audit/logs": {
       "get": {
         "tags": [
@@ -1482,526 +2002,6 @@
           "enabled": false,
           "accept_unverified_requests": false
         }
-      }
-    },
-    "/v1/app/bootstrap": {
-      "post": {
-        "tags": [
-          "bootstrap"
-        ],
-        "operationId": "appBootstrap",
-        "summary": "Initialize identity, session, configuration and startup popup decisions",
-        "description": "Single cold-start entry point. No Authorization header: create a server-issued guest user/device/session once for this logical idempotent request. Valid backend guest or registered-user Bearer: restore that identity. A supplied malformed/expired/revoked Bearer must return 401, never fall through to anonymous creation. Never infer a registered session from device_id. Return identity, session, config and current startup deliveries only; no wallet/tasks/feed/unread aggregation. Config modules independently return updated or not_modified inside HTTP 200. Startup eligibility is always evaluated separately from config version. Cache-Control: no-store. Core identity and complete valid config requirements fail as an error, not a partially successful identity object; retries reuse the same key. Gift qualification/grant timing is C01, so the interface must not promise a grant just because it created a guest.\n\n配置唯一入口：region、runtime、popups 全部由本接口下发，刷新时重新调用并携带 config_versions。新增 config.wheel 转盘配置占位，沿用独立版本比较与 HTTP 200 内 updated/not_modified；奖池、概率、消耗及资格等业务字段待定，本占位不代表转盘已可启用。\n\nVersion comparison is scoped to the selected app/region/locale/version/channel/set. Equal versions from different selection contexts cannot be treated as unchanged. Validate each whole module before persistence; use the last valid local data on network/config failure. Configuration revisions never reset reward eligibility or display history.",
-        "security": [
-          {},
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
-          {
-            "$ref": "#/components/parameters/XAppVersion"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BootstrapDataResponse"
-                },
-                "examples": {
-                  "first_install": {
-                    "summary": "First guest; welcome preview only until grant trigger C01 is approved.",
-                    "value": {
-                      "code": 0,
-                      "message": "ok",
-                      "data": {
-                        "identity": {
-                          "user_id": 1000123,
-                          "device_id": "dev_demo_install",
-                          "account_type": "guest",
-                          "is_guest": true,
-                          "profile": {
-                            "display_name": null,
-                            "avatar_url": null
-                          }
-                        },
-                        "session": {
-                          "session_id": "ses_demo_current",
-                          "access_token": "demo_nonfunctional_access_token",
-                          "token_type": "Bearer",
-                          "expires_at": 1797408000000,
-                          "refresh_token": "demo_nonfunctional_refresh_token",
-                          "refresh_expires_at": 1802592000000
-                        },
-                        "config": {
-                          "region": {
-                            "status": "updated",
-                            "version": 13,
-                            "data": {
-                              "region_code": "BR",
-                              "currency": "BRL",
-                              "coin_rate": 10000,
-                              "fx": 5,
-                              "business_timezone": "America/Sao_Paulo",
-                              "content_source_id": "src_br_01",
-                              "withdraw_page_set": [
-                                "wp_br_a",
-                                "wp_br_b"
-                              ],
-                              "popup_set": "br_default",
-                              "copy_pack": "br_pt",
-                              "channels": [
-                                "pix",
-                                "paypal"
-                              ],
-                              "min_payout_coins": 50000,
-                              "ad_units_ref": "br_units_v3",
-                              "version": 13
-                            }
-                          },
-                          "runtime": {
-                            "status": "updated",
-                            "version": 43,
-                            "data": {
-                              "version": 43,
-                              "effective_at": 1794812400000,
-                              "values": {
-                                "ad.reward.daily_cap": 15,
-                                "ad.interstitial.daily_cap": 12,
-                                "ad.appopen.hourly_cap": 1,
-                                "ad.appopen.daily_cap": 1,
-                                "ad.total.hard_cap": 40,
-                                "invite.settle_max": 50,
-                                "double.daily_cap": 3
-                              }
-                            }
-                          },
-                          "popups": {
-                            "status": "updated",
-                            "version": 43,
-                            "data": {
-                              "popup_set": "br_default",
-                              "version": 43,
-                              "items": [
-                                {
-                                  "id": "welcome_gift",
-                                  "enabled": true,
-                                  "trigger": {
-                                    "type": "app_open"
-                                  },
-                                  "priority": 100,
-                                  "group": "onboarding",
-                                  "conditions": {
-                                    "region": [
-                                      "BR"
-                                    ],
-                                    "new_user": true
-                                  },
-                                  "limits": {
-                                    "max_lifetime": 1
-                                  },
-                                  "template": "welcome_gift_v1",
-                                  "copy_pack": "br_pt"
-                                }
-                              ]
-                            }
-                          },
-                          "wheel": {
-                            "status": "updated",
-                            "version": 1,
-                            "data": {}
-                          }
-                        },
-                        "startup": {
-                          "popups": [
-                            {
-                              "delivery_id": "delivery_welcome_demo",
-                              "popup_id": "welcome_gift",
-                              "template": "welcome_gift_v1",
-                              "priority": 100,
-                              "group": "onboarding",
-                              "trigger": "app_open",
-                              "payload": {
-                                "reward": {
-                                  "base_coins": 50000,
-                                  "status": "not_granted",
-                                  "locked": false,
-                                  "ledger_id": null,
-                                  "unlock_condition": {
-                                    "type": "complete_first_series",
-                                    "valid_episodes": 3
-                                  }
-                                },
-                                "double_reward": {
-                                  "enabled": false,
-                                  "ad_required": true,
-                                  "additional_coins": 50000,
-                                  "target_total_coins": 100000,
-                                  "reason": "Aguardando elegibilidade do bonus inicial"
-                                }
-                              }
-                            }
-                          ]
-                        },
-                        "server_time": 1794816000000
-                      },
-                      "request_id": "req_example"
-                    },
-                    "description": "转盘模块为版本信封示例，data 业务内容仅占位，不代表已上线规则。"
-                  },
-                  "returning_guest": {
-                    "summary": "Existing guest; all four config caches unchanged; no repeated gift.",
-                    "value": {
-                      "code": 0,
-                      "message": "ok",
-                      "data": {
-                        "identity": {
-                          "user_id": 1000123,
-                          "device_id": "dev_demo_install",
-                          "account_type": "guest",
-                          "is_guest": true,
-                          "profile": {
-                            "display_name": null,
-                            "avatar_url": null
-                          }
-                        },
-                        "session": {
-                          "session_id": "ses_demo_current",
-                          "access_token": "demo_nonfunctional_access_token",
-                          "token_type": "Bearer",
-                          "expires_at": 1797408000000
-                        },
-                        "config": {
-                          "region": {
-                            "status": "not_modified",
-                            "version": 13
-                          },
-                          "runtime": {
-                            "status": "not_modified",
-                            "version": 43
-                          },
-                          "popups": {
-                            "status": "not_modified",
-                            "version": 43
-                          },
-                          "wheel": {
-                            "status": "not_modified",
-                            "version": 1
-                          }
-                        },
-                        "startup": {
-                          "popups": []
-                        },
-                        "server_time": 1794816000000
-                      },
-                      "request_id": "req_example"
-                    },
-                    "description": "转盘模块为版本信封示例，data 业务内容仅占位，不代表已上线规则。"
-                  },
-                  "registered_user": {
-                    "summary": "Backend-issued registered-user session restored.",
-                    "value": {
-                      "code": 0,
-                      "message": "ok",
-                      "data": {
-                        "identity": {
-                          "user_id": 1000456,
-                          "device_id": "dev_demo_install",
-                          "account_type": "google",
-                          "is_guest": false,
-                          "profile": {
-                            "display_name": "Maria S.",
-                            "avatar_url": "https://cdn.cinecoin.app/avatar/example.png"
-                          }
-                        },
-                        "session": {
-                          "session_id": "ses_demo_current",
-                          "access_token": "demo_nonfunctional_access_token",
-                          "token_type": "Bearer",
-                          "expires_at": 1797408000000
-                        },
-                        "config": {
-                          "region": {
-                            "status": "not_modified",
-                            "version": 13
-                          },
-                          "runtime": {
-                            "status": "not_modified",
-                            "version": 43
-                          },
-                          "popups": {
-                            "status": "not_modified",
-                            "version": 43
-                          },
-                          "wheel": {
-                            "status": "not_modified",
-                            "version": 1
-                          }
-                        },
-                        "startup": {
-                          "popups": []
-                        },
-                        "server_time": 1794816000000
-                      },
-                      "request_id": "req_example"
-                    },
-                    "description": "转盘模块为版本信封示例，data 业务内容仅占位，不代表已上线规则。"
-                  },
-                  "eligible_granted_welcome": {
-                    "summary": "Illustration of a separately approved, already credited locked grant; not proof of unconditional guest issuance.",
-                    "value": {
-                      "code": 0,
-                      "message": "ok",
-                      "data": {
-                        "identity": {
-                          "user_id": 1000456,
-                          "device_id": "dev_demo_install",
-                          "account_type": "google",
-                          "is_guest": false,
-                          "profile": {
-                            "display_name": "Maria S.",
-                            "avatar_url": "https://cdn.cinecoin.app/avatar/example.png"
-                          }
-                        },
-                        "session": {
-                          "session_id": "ses_demo_current",
-                          "access_token": "demo_nonfunctional_access_token",
-                          "token_type": "Bearer",
-                          "expires_at": 1797408000000,
-                          "refresh_token": "demo_nonfunctional_refresh_token",
-                          "refresh_expires_at": 1802592000000
-                        },
-                        "config": {
-                          "region": {
-                            "status": "updated",
-                            "version": 13,
-                            "data": {
-                              "region_code": "BR",
-                              "currency": "BRL",
-                              "coin_rate": 10000,
-                              "fx": 5,
-                              "business_timezone": "America/Sao_Paulo",
-                              "content_source_id": "src_br_01",
-                              "withdraw_page_set": [
-                                "wp_br_a",
-                                "wp_br_b"
-                              ],
-                              "popup_set": "br_default",
-                              "copy_pack": "br_pt",
-                              "channels": [
-                                "pix",
-                                "paypal"
-                              ],
-                              "min_payout_coins": 50000,
-                              "ad_units_ref": "br_units_v3",
-                              "version": 13
-                            }
-                          },
-                          "runtime": {
-                            "status": "updated",
-                            "version": 43,
-                            "data": {
-                              "version": 43,
-                              "effective_at": 1794812400000,
-                              "values": {
-                                "ad.reward.daily_cap": 15,
-                                "ad.interstitial.daily_cap": 12,
-                                "ad.appopen.hourly_cap": 1,
-                                "ad.appopen.daily_cap": 1,
-                                "ad.total.hard_cap": 40,
-                                "invite.settle_max": 50,
-                                "double.daily_cap": 3
-                              }
-                            }
-                          },
-                          "popups": {
-                            "status": "updated",
-                            "version": 43,
-                            "data": {
-                              "popup_set": "br_default",
-                              "version": 43,
-                              "items": [
-                                {
-                                  "id": "welcome_gift",
-                                  "enabled": true,
-                                  "trigger": {
-                                    "type": "app_open"
-                                  },
-                                  "priority": 100,
-                                  "group": "onboarding",
-                                  "conditions": {
-                                    "region": [
-                                      "BR"
-                                    ],
-                                    "new_user": true
-                                  },
-                                  "limits": {
-                                    "max_lifetime": 1
-                                  },
-                                  "template": "welcome_gift_v1",
-                                  "copy_pack": "br_pt"
-                                }
-                              ]
-                            }
-                          },
-                          "wheel": {
-                            "status": "updated",
-                            "version": 1,
-                            "data": {}
-                          }
-                        },
-                        "startup": {
-                          "popups": [
-                            {
-                              "delivery_id": "delivery_welcome_demo",
-                              "popup_id": "welcome_gift",
-                              "template": "welcome_gift_v1",
-                              "priority": 100,
-                              "group": "onboarding",
-                              "trigger": "app_open",
-                              "payload": {
-                                "reward": {
-                                  "base_coins": 50000,
-                                  "status": "credited_locked",
-                                  "locked": true,
-                                  "ledger_id": "ledger_welcome_demo",
-                                  "unlock_condition": {
-                                    "type": "complete_first_series",
-                                    "valid_episodes": 3
-                                  }
-                                },
-                                "double_reward": {
-                                  "enabled": true,
-                                  "ad_required": true,
-                                  "additional_coins": 50000,
-                                  "target_total_coins": 100000,
-                                  "reason": null
-                                }
-                              }
-                            }
-                          ]
-                        },
-                        "server_time": 1794816000000
-                      },
-                      "request_id": "req_example"
-                    },
-                    "description": "转盘模块为版本信封示例，data 业务内容仅占位，不代表已上线规则。"
-                  }
-                }
-              }
-            },
-            "headers": {
-              "Cache-Control": {
-                "schema": {
-                  "type": "string",
-                  "const": "no-store"
-                },
-                "description": "Do not put sessions, user state, signed URLs or financial responses in shared HTTP caches. Configs use application-managed validated persistence."
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/Unprocessable"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          },
-          "503": {
-            "$ref": "#/components/responses/Unavailable"
-          }
-        },
-        "x-sources": [
-          "previous-1.3.1:/v1/app/bootstrap post",
-          "interface-markdown:section 4.5 + confirmed conversation decisions"
-        ],
-        "x-contract-status": "review_required",
-        "x-open-issues": [
-          "C01",
-          "C04",
-          "C15"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BootstrapRequest"
-              },
-              "examples": {
-                "first_install": {
-                  "value": {
-                    "app_id": "cinecoin_br",
-                    "platform": "android",
-                    "app_version": "1.0.3",
-                    "build_number": 103,
-                    "os_version": "16",
-                    "locale": "pt-BR",
-                    "sim_country_code": "BR",
-                    "vpn_detected": false,
-                    "config_versions": {
-                      "region": 0,
-                      "runtime": 0,
-                      "popups": 0,
-                      "wheel": 0
-                    }
-                  }
-                },
-                "restored_session": {
-                  "value": {
-                    "app_id": "cinecoin_br",
-                    "platform": "android",
-                    "app_version": "1.0.3",
-                    "build_number": 103,
-                    "os_version": "16",
-                    "locale": "pt-BR",
-                    "sim_country_code": "BR",
-                    "vpn_detected": false,
-                    "config_versions": {
-                      "region": 13,
-                      "runtime": 43,
-                      "popups": 43,
-                      "wheel": 1
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-idempotency": {
-          "scope": "app_id + authenticated identity (if present) + Idempotency-Key",
-          "first_install": "Persist the request key securely before sending. Same request cannot create multiple guests or grant multiple gifts. Key entropy must be unpredictable; never reuse keys across installations.",
-          "replay": "Return the original identity/grant outcome; no repeated mutation. Session validity must still be checked. Retention and expired-session replay response need implementation approval."
-        },
-        "x-design-additions": [
-          "session.session_id",
-          "independent_module_results_with_consistent_data_shape",
-          "actual_welcome_reward_state_without_unconditional_grant"
-        ]
       }
     },
     "/v1/auth/google": {
