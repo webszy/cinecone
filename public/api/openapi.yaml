@@ -1,114 +1,431 @@
-# EXAMPLE ONLY — not a production API.
-# Replace this file with the real OpenAPI specification.
-# https://example.invalid is a reserved placeholder and is not a live server.
+# CineCoin API · OpenAPI 3.1
+#
+# 本文件是机读合同，供 Scalar 渲染与 Postman / Apifox 导入。
+# 字段语义以人读基线为准：public/api/10-统一接口文档-v1.0.md（接口基线 v1.2）
+# 两者不一致时以基线文档为准，并同步修改本文件。
+#
+# 当前进度：从零重建，已定义 Config 分组（/v1/config）。
+# 基线 46 个 path 尚未覆盖，按「配置 → 登录 → 观看计币 → 广告奖励 → 钱包提现」顺序逐步补齐。
 
 openapi: "3.1.0"
+
 info:
-  title: Example API
-  version: "0.0.0"
-  summary: Example specification. Not a production API.
+  title: CineCoin API
+  version: "0.1.0"
+  summary: 短剧网赚 App 自研业务接口
   description: |
-    **Example only. This is not a production API.**
+    面向巴西市场（BR / BRL / pt-BR）的短剧 App 业务接口。用户看剧赚金币，
+    金币按固定汇率折算现金后经 PIX 提现，广告是唯一变现路径。
 
-    This minimal OpenAPI 3.1 document shows how parameters, authentication,
-    responses, and error codes appear in the reference. The server address
-    `https://example.invalid` is a placeholder and must not be treated as a
-    live endpoint.
+    ## 与第三方内容接口的区别
+    本规范只覆盖**自研业务接口**（`/v1/*`），统一响应包为
+    `{"code":0,"message":"ok","data":{},"request_id":"..."}`，`code = 0` 才是成功。
 
-    Replace this file with the real specification before sharing it with partners.
+    短剧内容（剧目 / 分集 / 播放地址）来自第三方
+    `https://api.salesmarto.com/app-api/drama`，其响应包是
+    `{"code":200,"msg":"...","data":{}}` —— **两套包不同**，适配层必须转换，
+    不要把第三方的 `200` 当业务码混用。
+
+    ## 金额口径（红线，不可配）
+    - 账本以 **moedas（金币，integer）** 记账，永不用浮点
+    - 汇率 `10.000 moedas = R$ 1,00`，是**发布常量**，后台不提供修改入口
+    - 展示金额由服务端算好下发，**客户端不得自行做币→现金换算**
+    - 提现四档：50.000 / 100.000 / 300.000 / 500.000 moedas = R$ 5 / 10 / 30 / 50
+
+    ## 时间口径
+    接口时间统一 **UTC 毫秒时间戳**；业务日按 `America/Sao_Paulo`（UTC−3）00:00 切分。
+
+    ## 通用降级
+    写接口一律不自动重试，只允许用户手动重试且复用同一幂等键。
+  x-api-baseline: "v1.2（public/api/10-统一接口文档-v1.0.md）"
+  x-doc-status: "部分实现：已完成 Config 分组，其余分组待补"
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+
 servers:
-  - url: "https://example.invalid"
-    description: Placeholder only. Not a production server. Replace before use.
+  - url: https://api.cinecoin.app
+    description: 生产环境。全部 `/v1/*` 需 Bearer token（游客为匿名 token）
+
 tags:
-  - name: Example
-    description: Sample operations used to preview the documentation. Not implemented.
+  - name: Config
+    description: |
+      配置下发。运营可改的那一半参数，客户端不写死、不发版即可调。
+
+      与「策略决策」的分工：配置是运营可改的静态值，决策是运行时算出的结果，
+      两者都用**单调递增 version**，客户端只按 version 覆盖缓存，不回落到旧版。
+
 paths:
-  /example/items/{itemId}:
+  /v1/config:
     get:
-      operationId: getExampleItem
       tags:
-        - Example
-      summary: Read an example item
+        - Config
+      operationId: getConfig
+      summary: 拉取全局配置参数
       description: |
-        Sample operation for previewing parameters, authentication, responses,
-        and error codes. This endpoint does not exist.
+        拉取当前用户命中的配置包。下发按 **国家 / app_version / 渠道 / 用户分层**
+        四个维度命定，同一用户同一时刻只命中一份。
+
+        ### 缓存与兜底
+        - `version` 单调递增，客户端只按 version 覆盖磁盘缓存，**不回落到旧版**
+          （旧版可能包含已被后台回滚的错误参数）
+        - 兜底顺序：接口 → 磁盘缓存 → 内置默认（集中的 `ConfigDefaults` 对象，
+          禁止把默认值散落在业务分支里）
+        - 接口整体失败不影响短剧播放与计币，只让广告走内置默认频控（见 17 章降级矩阵）
+
+        ### 整包校验（服务端，坏一条拒全包）
+        不允许部分生效。任一条不通过则**沿用上一版**下发，客户端无感：
+
+        | 规则 | 违反处理 |
+        |---|---|
+        | 各 key 在合法区间内 | 整包拒绝，沿用上一版，5min 内告警 |
+        | `reward + interstitial + appopen ≤ hard_cap` | 整包拒绝，后台提示冲突项 |
+        | `hard_cap ∈ [30,60]` | 整包拒绝（防调到 999 变相关掉风控） |
+
+        ### 生效时间
+        | 类型 | 生效 |
+        |---|---|
+        | 日上限（`ad.*.daily_cap`） | 次日 00:00 BRT，且**不清零当日已用次数** |
+        | 小时级（`ad.appopen.hourly_cap`）、`invite.settle_max` | 立即 |
+        | `ad.total.hard_cap` | 下次冷启 |
+
+        ### 不在本接口内（红线，做成按钮等于把「偷用户钱」做成功能）
+        汇率 / 单次奖励币数 / 提现门槛与档位 / 提现 SLA 与加速上限 /
+        KYC 强度 / 进度条分段系数 —— 一律不下发、不可配。
       security:
         - bearerAuth: []
       parameters:
-        - name: itemId
-          in: path
-          required: true
-          description: Example item identifier.
-          schema:
-            type: string
-            examples:
-              - item_example
-        - name: verbose
-          in: query
-          required: false
-          description: Example query flag. Not used by a live service.
-          schema:
-            type: boolean
-            default: false
+        - $ref: "#/components/parameters/Scope"
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: "#/components/parameters/AppVersion"
+        - $ref: "#/components/parameters/Region"
       responses:
         "200":
-          description: Example item payload.
+          description: 命中配置包。`values` 中仅包含本次 `scope` 覆盖的分组。
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExampleItem"
-              example:
-                id: item_example
-                name: Example item
+                $ref: "#/components/schemas/ConfigResponse"
+              examples:
+                adAndInvite:
+                  summary: scope=ad,invite（基线 4.1 原例）
+                  value:
+                    code: 0
+                    message: ok
+                    request_id: req_01HQ8Z3K4M9VX2T
+                    data:
+                      version: 42
+                      effective_at: 1762905600000
+                      values:
+                        ad.reward.daily_cap: 15
+                        ad.interstitial.daily_cap: 12
+                        ad.appopen.hourly_cap: 1
+                        ad.appopen.daily_cap: 1
+                        ad.total.hard_cap: 40
+                        invite.settle_max: 50
+                all:
+                  summary: scope 省略或 =all
+                  value:
+                    code: 0
+                    message: ok
+                    request_id: req_01HQ8Z3K4M9VX3A
+                    data:
+                      version: 43
+                      effective_at: 1762909200000
+                      values:
+                        ad.reward.daily_cap: 15
+                        ad.interstitial.daily_cap: 12
+                        ad.appopen.hourly_cap: 1
+                        ad.appopen.daily_cap: 1
+                        ad.total.hard_cap: 40
+                        invite.settle_max: 50
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
-          description: Missing or invalid credentials.
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          description: |
+            服务端异常（`50001`）。配置接口故障不影响短剧播放与计币，
+            广告按内置默认频控、弹窗走内置 3 条兜底。客户端读磁盘缓存，无缓存用内置默认。
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                code: unauthorized
-                message: Example error. Not returned by a live service.
-        "404":
-          description: Example item was not found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                code: not_found
-                message: Example error. Not returned by a live service.
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                serverError:
+                  value:
+                    code: 50001
+                    message: internal error
+                    request_id: req_01HQ8Z3K4M9VX4B
+                    data: null
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Example bearer token. Not a production credential.
+      description: |
+        游客为匿名 token（`POST /v1/auth/anonymous` 换取，TTL 30 天，静默续期）。
+
+        返回 `40101` 时：客户端**静默**重新 anonymous 并重放一次原请求，
+        不弹登录、不清本地数据。
+
+  parameters:
+    Scope:
+      name: scope
+      in: query
+      required: false
+      description: |
+        需要的配置分组，逗号分隔。不传等价于 `all`。
+
+        未在 `scope` 内的分组不会出现在 `values` 里 —— 客户端必须能处理
+        「只拿到部分分组」的情况，不能假定某个 key 一定存在。
+      schema:
+        type: string
+        default: all
+        pattern: "^(all|(ad|invite)(,(ad|invite))*)$"
+        examples:
+          - ad,invite
+
+    DeviceId:
+      name: X-Device-Id
+      in: header
+      required: true
+      description: 安装级 UUID，卸载重装即变更。用于渠道归属与用户分层命中。
+      schema:
+        type: string
+        minLength: 8
+        examples:
+          - 8f3a2c10-4b6d-4e91-9c77-0a1b2c3d4e5f
+
+    AppVersion:
+      name: X-App-Version
+      in: header
+      required: true
+      description: |
+        客户端版本，格式 `版本号 (构建号)`。
+        配置按 app_version 分层下发，缺这个头会命中错误的配置包。
+      schema:
+        type: string
+        pattern: '^\d+\.\d+\.\d+ \(\d+\)$'
+        examples:
+          - 1.0.3 (103)
+
+    Region:
+      name: X-Region
+      in: header
+      required: false
+      description: |
+        客户端自报区域，仅作参考。服务端以 SIM 的 MCC（免权限）→ GeoIP 判定为准，
+        不一致时**以服务端为准**。
+      schema:
+        type: string
+        pattern: "^[A-Z]{2}$"
+        examples:
+          - BR
+
+  responses:
+    BadRequest:
+      description: 参数缺失或格式错（`40001`）。不重试，埋点后提示用户。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            badScope:
+              summary: scope 传了未定义的分组
+              value:
+                code: 40001
+                message: "invalid scope: popup"
+                request_id: req_01HQ8Z3K4M9VX5C
+                data: null
+
+    Unauthorized:
+      description: token 失效（`40101`）。客户端静默重新 anonymous 并重放一次。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            expired:
+              value:
+                code: 40101
+                message: token expired
+                request_id: req_01HQ8Z3K4M9VX6D
+                data: null
+
+    RateLimited:
+      description: |
+        频控命中（`42901`）。必须显示 `retry_after_ms` 且**不自行放宽**重试间隔。
+      headers:
+        Retry-After:
+          description: 建议等待秒数，与 `data.retry_after_ms` 同源。
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            tooMany:
+              value:
+                code: 42901
+                message: too many requests
+                request_id: req_01HQ8Z3K4M9VX7E
+                data:
+                  retry_after_ms: 3000
+
   schemas:
-    ExampleItem:
+    ConfigResponse:
       type: object
-      additionalProperties: false
-      required:
-        - id
-        - name
-      properties:
-        id:
-          type: string
-          description: Example identifier.
-        name:
-          type: string
-          description: Example display name.
-    Error:
-      type: object
-      additionalProperties: false
+      description: 统一响应包（`code = 0` 为成功）。
       required:
         - code
         - message
+        - data
+        - request_id
       properties:
         code:
-          type: string
-          description: Stable example error code.
+          type: integer
+          description: 业务码。`0` 成功，其余见基线 17 章错误码表。
+          enum:
+            - 0
         message:
           type: string
-          description: Human-readable example message.
+          examples:
+            - ok
+        request_id:
+          type: string
+          description: 请求链路标识，客户端日志与后台审计用它串链路。
+          examples:
+            - req_01HQ8Z3K4M9VX2T
+        data:
+          $ref: "#/components/schemas/ConfigData"
+
+    ConfigData:
+      type: object
+      required:
+        - version
+        - effective_at
+        - values
+      properties:
+        version:
+          type: integer
+          minimum: 1
+          description: |
+            配置包版本，**单调递增**。客户端只按 version 覆盖磁盘缓存，不回落到旧版
+            （旧版可能包含已被后台回滚的错误参数）。
+          examples:
+            - 42
+        effective_at:
+          type: integer
+          format: int64
+          description: |
+            本版本下发时间，UTC 毫秒。注意它不等于「各 key 生效时间」——
+            日上限类参数是次日 00:00 BRT 才生效。
+          examples:
+            - 1762905600000
+        values:
+          $ref: "#/components/schemas/ConfigValues"
+
+    ConfigValues:
+      type: object
+      description: |
+        键值对形式的配置项，键名用点分层级：`分组.子项.属性`。
+
+        **只包含本次 `scope` 覆盖的分组**，客户端不得假定任一 key 必然存在，
+        缺失时回落到磁盘缓存或内置默认。
+
+        当前可配项全部为 integer。弹窗集、提现页 A/B、奖励参数、策略参数等
+        结构化配置**不在本接口**内，分别走 `/v1/popup-set`、`/v1/withdraw-page`、
+        `/v1/strategy/decide`。
+      properties:
+        ad.reward.daily_cap:
+          type: integer
+          description: 激励视频日上限（次）。次日 00:00 BRT 生效，不清零当日已用次数。
+          default: 15
+          minimum: 0
+          maximum: 25
+          examples:
+            - 15
+        ad.interstitial.daily_cap:
+          type: integer
+          description: 插屏日上限（次）。次日 00:00 BRT 生效。
+          default: 12
+          minimum: 0
+          maximum: 20
+          examples:
+            - 12
+        ad.appopen.hourly_cap:
+          type: integer
+          description: 开屏广告每小时上限（次）。立即生效。
+          default: 1
+          minimum: 0
+          maximum: 3
+          examples:
+            - 1
+        ad.appopen.daily_cap:
+          type: integer
+          description: 开屏广告每日上限（次）。次日 00:00 BRT 生效。
+          default: 1
+          minimum: 0
+          maximum: 3
+          examples:
+            - 1
+        ad.total.hard_cap:
+          type: integer
+          description: |
+            全广告位硬上限（次）。校验约束 `reward + interstitial + appopen ≤ hard_cap`，
+            且锁定区间 `[30,60]` —— 锁 60 是为了防止把风控变相关掉。下次冷启生效。
+          default: 40
+          minimum: 30
+          maximum: 60
+          examples:
+            - 40
+        invite.settle_max:
+          type: integer
+          description: 可结算提现的邀请人数上限（人）。立即生效。
+          default: 50
+          minimum: 0
+          maximum: 200
+          examples:
+            - 50
+      additionalProperties:
+        type: integer
+
+    ErrorResponse:
+      type: object
+      description: 统一错误包。`code` 非 0，`data` 通常为 `null`。
+      required:
+        - code
+        - message
+        - request_id
+      properties:
+        code:
+          type: integer
+          description: 业务错误码，见基线 17 章。同一 `code` 对应固定客户端动作。
+          examples:
+            - 40001
+        message:
+          type: string
+          description: 面向开发者的英文说明，**不可直接展示给用户**（用户文案走本地化）。
+          examples:
+            - "invalid scope: popup"
+        request_id:
+          type: string
+          examples:
+            - req_01HQ8Z3K4M9VX5C
+        data:
+          description: 错误时一般为 `null`；`42901` 时带 `retry_after_ms`。
+          type:
+            - object
+            - "null"
+          properties:
+            retry_after_ms:
+              type: integer
+              description: 建议重试间隔，毫秒。仅 `42901` 返回。
+              examples:
+                - 3000
