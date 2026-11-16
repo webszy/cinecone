@@ -109,23 +109,33 @@ GitHub 链接默认隐藏。要显示它，给首页的 `#github-link` 填写 `d
 
 规范用 **JSON** 而不是 YAML：这份合同由脚本生成与校验，JSON 不怕缩进和制表符——YAML 在长段中文描述里踩过一次缩进错位。
 
-当前只有一个接口：
+当前是合并版规范 `v1.5.0`，共 **68 个 path / 179 个 schema**，按 15 个分组组织：
 
-| 接口 | 作用 | 文档 |
-|---|---|---|
-| `POST /v1/app/bootstrap` | App 冷启初始化：身份 + 会话 + 三段配置 + 启动弹窗 | [Bootstrap-接口契约说明.md](./Bootstrap-接口契约说明.md) |
+| 分组 | 覆盖内容 |
+|---|---|
+| `bootstrap` | App 冷启初始化，也是配置下发的唯一入口 |
+| `auth` | Google 登录、token 续期与登出、当前用户、KYC |
+| `content` `watch` | 剧目与分集、feed、播放、观看心跳、解锁 |
+| `ad` `reward` `task` | 广告决策与激励回调、奖励领取、任务与补签 |
+| `wallet` | 余额、账本流水、提现全流程、收款账户 |
+| `popup` `event` `invite` `product` | 弹窗决策与上报、埋点、邀请、商品兑换 |
+| `config` | 仅提现页配置；其余配置由 bootstrap 下发 |
+| `admin` | 运营后台：策略、实验、灰度、审计、看板（独立后台鉴权） |
+| `wheel` | 转盘，当前仅预留结果查询 |
 
-它是**冷启与配置下发的唯一入口**。原先的 `GET /v1/config` 已从规范中移除——区域、运行时、弹窗三块配置都由 Bootstrap 的 `config` 段下发，靠 `config_versions` 做版本比对。接口基线 `10-统一接口文档-v1.0.md` 里仍留着 §4.1 的旧定义 —— 基线是**冻结的只读参考**，不改它；接口变更只写 `openapi.json`，两者分叉是预期状态。
+响应统一信封 `{code:0, message, data, request_id}`，错误体统一用 `message_pt`。Bootstrap 与它的字段口径见 [Bootstrap-接口契约说明.md](./Bootstrap-接口契约说明.md)（注意：该文写于零信封版本，响应结构以 `openapi.json` 为准）。
 
-其余分组（登录、观看计币、广告奖励、钱包提现）尚未写入规范，需要时查 `10-统一接口文档-v1.0.md`（只读）。
+接口基线 `10-统一接口文档-v1.0.md` 是**冻结的只读参考**，不改它；接口变更只写 `openapi.json`，两者分叉是预期状态。
 
-改完必须校验，要求 **0 error 0 warning**：
+改完必须校验，要求 **0 error**：
 
 ```bash
 npx --yes @redocly/cli@latest lint public/api/openapi.json
 ```
 
-`servers[0].url` 是**占位域名**（`https://api.test.com`），正式域名未定，不要拿去联调。
+`0 warning` 目前做不到，有 39 条已知项（36 条是 Redocly 对 `allOf` 的示例校验误报，2 条回调缺 4XX，1 条缺 license），原因与取舍写在 `AGENTS.md` 第 8 节。
+
+`servers` 是两个**未验证**地址（`api.cinecoin.app` / `api-stg.cinecoin.app`），正式域名仍未定档，不要拿去联调。
 
 把真实规范写进这个文件后再分享给第三方。Scalar 会展示规范里的参数、响应模型、认证方式和错误码，并用页面上的客户端发送调试请求。跨域请求走 Scalar 的代理 `https://proxy.scalar.com`。
 

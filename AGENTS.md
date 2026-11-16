@@ -196,12 +196,15 @@ window.__CCAPI__    // 约 60 个动作：openWheel / openClaim / playEpisode / 
 
 这些不是 bug 报告，是**知情状态**。改到相关区域时顺手处理或至少别扩大：
 
-1. **`openapi.json` 正在从零重建，目前只有 1 个 path：`POST /v1/app/bootstrap`**，它是**冷启 + 配置下发的唯一入口**。`GET /v1/config` 已按产品决定从规范移除（2026-11-16），不要再加回来——区域 / 运行时 / 弹窗三块配置都在 Bootstrap 的 `config` 段下发，版本比对走 `config_versions`。
-   - **基线文档只读**：`10-统一接口文档-v1.0.md` §4.1 仍留着 `GET /v1/config` 的旧定义，不要在规范里恢复它，**也不要去改基线**。读基线时以 `openapi.json` 为准；两者的分叉是预期状态（见硬约束 6）。
-   - 真实基线共 46 path / 15 schema，按「Bootstrap → 登录 → 观看计币 → 广告奖励 → 钱包提现」顺序逐步补齐。补齐前对外分享必须说明覆盖范围。
-   - 改动后用 `npx --yes @redocly/cli@latest lint public/api/openapi.json` 校验（仓库根有 `redocly.yaml`），要求 0 error 0 warning。
-   - **别把 `openapi.json` 改回 YAML**：长段中文描述在 YAML 里缩进极易错位，这份文件现在由 Ruby 脚本从分片 YAML 合成后输出 JSON，手工维护请直接改 JSON。
-   - **`servers[0].url` 是占位域名 `https://api.test.com`**：正式 API 域名尚未确定。不要把示例地址当真实环境去联调；域名定档后只改这一行，并在 `info.x-server-status` 同步状态。基线文档里的 `api.cinecoin.app` 同样只是示意，没有实际部署。
+1. **`openapi.json` 是合并版规范 v1.5.0（68 path / 179 schema / 15 个分组）**，来自接口基线、PRD v2.6.0 与 Bootstrap 决策的合并。分组：`bootstrap` `auth` `content` `config` `watch` `ad` `reward` `wallet` `task` `popup` `event` `invite` `product` `admin` `wheel`。
+   - **响应形态是统一信封** `{code:0, message, data, request_id}`；错误体统一 `message_pt`。早期那版「零信封扁平响应」已被取代，`Bootstrap-接口契约说明.md` 描述的是旧版，以 `openapi.json` 为准。
+   - **基线文档只读**：`10-统一接口文档-v1.0.md` 与规范已分叉（它仍有 `GET /v1/config`、整数码错误体）。**不要改基线**，接口变更只写 `openapi.json`（见硬约束 6）。
+   - 校验命令：`npx --yes @redocly/cli@latest lint public/api/openapi.json`（仓库根有 `redocly.yaml`）。标准是 **0 error**；`0 warning` 目前做不到，有 39 条已知项：
+     - **36 条 `no-invalid-media-type-examples` 是校验器误报**：Redocly 的示例校验器只要遇到 `allOf`，就把对象里所有已声明属性判成「未声明」。规范里有 4 个 schema 带 `allOf` 的跨字段约束（`Identity` 的 guest⟹is_guest、`WithdrawTier` 的 50000→R$5,00→15 天、`WelcomeGiftReward`、`PopupTrigger`），这些约束有价值，**不要为了消警告删掉 `allOf`**。已试过 `unevaluatedProperties: false` 和把 properties 挪进 `allOf`，都无效。
+     - 2 条 `operation-4xx-response`：`/v1/ad/s2s/reward`、`/v1/withdraw/callback` 两个回调没定义 4XX（待产品确认回调失败要不要带错误体）。
+     - 1 条 `info-license`：`info` 缺 `license`（用户决定暂不补）。
+   - **别把 `openapi.json` 改回 YAML**：长段中文描述在 YAML 里缩进极易错位，手工维护请直接改 JSON。
+   - **`servers` 里是两个未验证地址**：`https://api.cinecoin.app` / `https://api-stg.cinecoin.app`，规范里标注 `availability not verified`。**正式域名仍未定档**，不要拿去联调；定档后只需替换这两行。
 2. **`build.py` / `tools/snapshot.py` 缺失**（第 5 节）。想恢复可重复构建，需要按分片顺序重写一个拼接脚本，并加标签配平自检。
 3. **PRD 只有 v2.6.0 这一份，且是单文件**：`public/PRD/index.html`（标题 `CineCoin 产品需求文档 v2.6.0 · 两大模块`）已入库，但基线文档引用的 `拆解/` 目录（策略平台 PRD、`openapi-v1.json`、PRD 的历史版本）**仍不在本仓库**。原型 README 里写「对应 PRD v2.6.0」，而正文引用的文件名仍是 `CineCoin-PRD-v2.4` —— 这是历史命名，不代表版本倒退。
 4. **接口未开 CORS**：`api.salesmarto.com` 不返回 `Access-Control-Allow-Origin`，浏览器实时拉取会被拦，所以构建期快照是主路径，实时模式是"能成就更好"。别把实时拉取当依赖。

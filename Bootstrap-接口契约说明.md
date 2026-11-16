@@ -1,10 +1,16 @@
 # Bootstrap 接口契约说明
 
+> ⚠️ **本文档描述的是历史版本（零信封，对应 `openapi.json` v0.3.0）。**
+> 规范已升级为 `CineCoin Unified API v1.5.0`（68 path），成功响应改为统一信封
+> `{code:0, message, data, request_id}`，错误体统一 `message_pt`。
+> **下文 §3–§7 里的响应结构与示例已过时**，只保留业务规则、冲突清单与决策记录的价值；
+> 字段与结构一律以 `public/api/openapi.json` 为准。
+
 - 版本：v0.2（2026-11-16）
-- 对应规范：`public/api/openapi.json` v0.3.0（OpenAPI 3.1.0），规范内**只有本接口**
+- 编写时对应的规范：`public/api/openapi.json` v0.3.0（OpenAPI 3.1.0，仅含本接口）
 - 参考基线（**只读，不修改**）：`public/api/10-统一接口文档-v1.0.md`（v1.2）、`public/PRD/index.html`（PRD v2.6.0）
 - 唯一可写的接口合同：`public/api/openapi.json`
-- 范围：**只定义 `POST /v1/app/bootstrap`**。未改动登录、账本、提现等任何既有接口。
+- 范围：只讨论 `POST /v1/app/bootstrap`。
 
 ---
 

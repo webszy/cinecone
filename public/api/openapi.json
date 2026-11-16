@@ -22,56 +22,64 @@
   ],
   "tags": [
     {
-      "name": "auth"
+      "name": "auth",
+      "description": "身份与登录。Google 登录换取正式 token、token 续期与登出、当前用户资料、KYC 实名（占位）。\n游客身份不在这里创建——由 `POST /v1/app/bootstrap` 首次调用时签发。"
     },
     {
-      "name": "content"
+      "name": "content",
+      "description": "短剧内容浏览。剧目列表与详情、分集、个性化 feed、播放地址。\n内容实体来自第三方内容接口，这里只做鉴权、适配与播放源回退。"
     },
     {
-      "name": "config"
+      "name": "config",
+      "description": "配置读取（已收口）。仅保留提现页配置 `GET /v1/withdraw-page`；\n区域 / 运行时 / 弹窗 / 转盘配置统一由 `POST /v1/app/bootstrap` 的 `config` 段下发，不要在这里新增配置接口。"
     },
     {
-      "name": "watch"
+      "name": "watch",
+      "description": "观看与解锁。观看心跳上报、解锁报价、解锁扣费。\n有效观看时长由心跳判定，是后续计币与礼包解冻的依据。"
     },
     {
-      "name": "ad"
+      "name": "ad",
+      "description": "广告。广告位决策、曝光上报、激励视频 S2S 回调发奖。\n广告是唯一变现路径，也是非付费用户金币的唯一来源。"
     },
     {
-      "name": "reward"
+      "name": "reward",
+      "description": "奖励。可领奖励查询与领取。\n奖励金额是固定业务规则，不进运行时配置，不能热更。"
     },
     {
-      "name": "wallet"
+      "name": "wallet",
+      "description": "账本与提现。余额、金币流水、提现档位与下单、提现进度与申诉、收款账户绑定。\n金额一律以 moedas（整数）记账；汇率与提现档位是发布常量，不提供修改入口。"
     },
     {
-      "name": "task"
+      "name": "task",
+      "description": "任务与签到。任务列表、任务奖励领取、补签。"
     },
     {
-      "name": "popup"
+      "name": "popup",
+      "description": "弹窗与策略。弹窗决策、弹窗队列推进、展示上报、通用策略决策。\n弹窗的**配置**由 bootstrap 下发，这里只负责运行时决策与回传，不返回配置包。"
     },
     {
-      "name": "event"
+      "name": "event",
+      "description": "埋点上报。客户端事件批量上报，用于漏斗、留存与渠道对账。"
     },
     {
-      "name": "invite"
+      "name": "invite",
+      "description": "邀请。邀请信息与分享素材、邀请关系绑定、邀请列表。"
     },
     {
-      "name": "product"
+      "name": "product",
+      "description": "商品与实物兑换。商品列表与详情、兑换、收货地址读写。"
     },
     {
-      "name": "bootstrap"
+      "name": "bootstrap",
+      "description": "App 冷启初始化，也是**配置下发的唯一入口**。身份 + 会话 + 四段配置 +\n启动弹窗一次请求拿全；刷新时重新调用并携带 `config_versions`。"
     },
     {
-      "name": "Content"
-    },
-    {
-      "name": "Tasks"
-    },
-    {
-      "name": "admin"
+      "name": "admin",
+      "description": "运营后台。广告与弹窗策略、实验、灰度发布、配置审计、看板。\n面向运营人员，与客户端 `/v1/*` 分离，使用独立的后台鉴权（`AdminBearerAuth`）。"
     },
     {
       "name": "wheel",
-      "description": "转盘相关接口；当前仅预留结果查询。转盘配置统一由 Bootstrap 下发。"
+      "description": "转盘。当前仅预留结果查询 `GET /v1/wheel/results/{id}`；\n转盘配置由 bootstrap 的 `config.wheel` 下发，奖池与概率规则待定。"
     }
   ],
   "paths": {
@@ -2297,7 +2305,7 @@
     "/v1/checkin/makeup": {
       "post": {
         "tags": [
-          "Tasks"
+          "task"
         ],
         "summary": "Make up missed check-in",
         "operationId": "makeupCheckin",
@@ -7157,7 +7165,7 @@
     "/v1/series/{id}": {
       "get": {
         "tags": [
-          "Content"
+          "content"
         ],
         "summary": "Get series detail",
         "operationId": "getSeries",
@@ -8784,12 +8792,6 @@
         "additionalProperties": false,
         "description": "Additional 50,000 means total 100,000, not a second 100,000. enabled is current eligibility only. Trusted ad proof is required. Whether general double quota applies to welcome is C04."
       },
-      "TimestampMs": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "UTC Unix timestamp in milliseconds.",
-        "format": "int64"
-      },
       "Coins": {
         "type": "integer",
         "minimum": 0,
@@ -9774,29 +9776,6 @@
           "region"
         ],
         "description": "No balance and no detailed risk scores/fingerprint reasons. Non-core behavior fields are optional as source contracts are not uniform."
-      },
-      "ContentLicense": {
-        "type": "object",
-        "properties": {
-          "license_region": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "pattern": "^[A-Z]{2}$"
-            }
-          },
-          "license_expire": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "UTC Unix timestamp in milliseconds.",
-            "format": "int64"
-          }
-        },
-        "additionalProperties": false,
-        "required": [
-          "license_region",
-          "license_expire"
-        ]
       },
       "Series": {
         "type": "object",
@@ -13057,54 +13036,6 @@
         "description": "Aggregation shape is a merge proposal from Markdown 13.2. Financial units remain unspecified.",
         "x-contract-status": "provisional"
       },
-      "InternalWithdrawalProviderEvent": {
-        "type": "object",
-        "properties": {
-          "withdraw_id": {
-            "type": "string",
-            "description": "Server-issued resource identifier.",
-            "minLength": 1
-          },
-          "channel_txn_id": {
-            "type": "string",
-            "description": "Server-issued resource identifier.",
-            "minLength": 1
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PAID",
-              "REJECTED",
-              "FAILED"
-            ]
-          },
-          "reason_code": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ReasonCode"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "amount": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "Provider amount unit is not settled; never assume moedas or BRL from the field name alone."
-          }
-        },
-        "additionalProperties": false,
-        "required": [
-          "withdraw_id",
-          "channel_txn_id",
-          "status",
-          "amount"
-        ],
-        "description": "Internal mapping sketch from Markdown 8.9 only. Not a callable client request or verified provider wire schema.",
-        "x-contract-status": "provisional",
-        "x-internal-only": true
-      },
       "MeDataResponse": {
         "type": "object",
         "properties": {
@@ -14430,29 +14361,6 @@
           "type": "string"
         },
         "description": "Optional diagnostic app version; when provided must agree with request body app_version/build_number."
-      },
-      "Page": {
-        "name": "page",
-        "in": "query",
-        "required": false,
-        "schema": {
-          "type": "integer",
-          "minimum": 1,
-          "default": 1
-        },
-        "description": ""
-      },
-      "Size": {
-        "name": "size",
-        "in": "query",
-        "required": false,
-        "schema": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 50,
-          "default": 20
-        },
-        "description": ""
       }
     },
     "responses": {
