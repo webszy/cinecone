@@ -254,19 +254,19 @@ a {
   outline-offset: 3px;
 }
 
+/* Scalar 的 modern 布局是一整页长文档（.references-rendered 实测 16000px+），
+   滚动本就该交给 document。这里绝不能钉 height:100dvh + overflow:hidden：
+   那样正文只会溢出被裁剪，滚轮完全无效。 */
 .api-page {
-  height: 100vh;
-  height: 100dvh;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  /* 告诉 Scalar 顶部还有一条自建栏，它据此计算 sticky 偏移 */
+  --scalar-custom-header-height: var(--api-bar-height);
+  min-height: 100dvh;
 }
 
 .portal-api-bar {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 10001;
-  flex: 0 0 var(--api-bar-height);
   height: var(--api-bar-height);
   justify-content: flex-start;
   gap: 10px;
@@ -294,11 +294,10 @@ a {
   font-size: 0.875rem;
 }
 
+/* 高度交给 Scalar 自身，容器只保证至少铺满一屏（首屏不闪白） */
 .api-reference,
 .api-fallback {
-  flex: 1 1 auto;
-  min-height: 0;
-  height: calc(100dvh - var(--api-bar-height));
+  min-height: calc(100dvh - var(--api-bar-height));
 }
 
 .api-fallback {
