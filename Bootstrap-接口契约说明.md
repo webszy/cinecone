@@ -1,7 +1,7 @@
 # Bootstrap 接口契约说明
 
 > ⚠️ **本文档描述的是历史版本（零信封，对应 `openapi.json` v0.3.0）。**
-> 规范已升级为 `CineCoin Unified API v1.5.0`（68 path），成功响应改为统一信封
+> 规范已升级为 `CineCoin Unified API v1.5.0`（48 path，仅 App 客户端），成功响应改为统一信封
 > `{code:0, message, data, request_id}`，错误体统一 `message_pt`。
 > **下文 §3–§7 里的响应结构与示例已过时**，只保留业务规则、冲突清单与决策记录的价值；
 > 字段与结构一律以 `public/api/openapi.json` 为准。

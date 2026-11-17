@@ -109,7 +109,7 @@ GitHub 链接默认隐藏。要显示它，给首页的 `#github-link` 填写 `d
 
 规范用 **JSON** 而不是 YAML：这份合同由脚本生成与校验，JSON 不怕缩进和制表符——YAML 在长段中文描述里踩过一次缩进错位。
 
-当前是合并版规范 `v1.5.0`，共 **68 个 path / 179 个 schema**，按 15 个分组组织：
+当前是合并版规范 `v1.5.0`，共 **48 个 path / 173 个 schema**，按 14 个分组组织（只覆盖 App 客户端；运营后台 `/api/admin/*` 已整体剥离）：
 
 | 分组 | 覆盖内容 |
 |---|---|
@@ -120,7 +120,6 @@ GitHub 链接默认隐藏。要显示它，给首页的 `#github-link` 填写 `d
 | `wallet` | 余额、账本流水、提现全流程、收款账户 |
 | `popup` `event` `invite` `product` | 弹窗决策与上报、埋点、邀请、商品兑换 |
 | `config` | 仅提现页配置；其余配置由 bootstrap 下发 |
-| `admin` | 运营后台：策略、实验、灰度、审计、看板（独立后台鉴权） |
 | `wheel` | 转盘，当前仅预留结果查询 |
 
 响应统一信封 `{code:0, message, data, request_id}`，错误体统一用 `message_pt`。Bootstrap 与它的字段口径见 [Bootstrap-接口契约说明.md](./Bootstrap-接口契约说明.md)（注意：该文写于零信封版本，响应结构以 `openapi.json` 为准）。

@@ -196,7 +196,8 @@ window.__CCAPI__    // 约 60 个动作：openWheel / openClaim / playEpisode / 
 
 这些不是 bug 报告，是**知情状态**。改到相关区域时顺手处理或至少别扩大：
 
-1. **`openapi.json` 是合并版规范 v1.5.0（68 path / 179 schema / 15 个分组）**，来自接口基线、PRD v2.6.0 与 Bootstrap 决策的合并。分组：`bootstrap` `auth` `content` `config` `watch` `ad` `reward` `wallet` `task` `popup` `event` `invite` `product` `admin` `wheel`。
+1. **`openapi.json` 是合并版规范 v1.5.0（48 path / 173 schema / 14 个分组）**，来自接口基线、PRD v2.6.0 与 Bootstrap 决策的合并。分组：`bootstrap` `auth` `content` `config` `watch` `ad` `reward` `wallet` `task` `popup` `event` `invite` `product` `wheel`。
+   - **只发布 App 客户端契约**：运营后台 `/api/admin/*`（19 条）与管理员专用的 `/v1/experiments/{id}/summary` 已整体移除，`AdminBearerAuth` 一并删除；移除记录写在 `x-removed-operations`，删掉的 C12 也不再出现在 `x-open-issues`。要恢复后台接口，得从 `a488e60` 之前的规范里挑回来。
    - **响应形态是统一信封** `{code:0, message, data, request_id}`；错误体统一 `message_pt`。早期那版「零信封扁平响应」已被取代，`Bootstrap-接口契约说明.md` 描述的是旧版，以 `openapi.json` 为准。
    - **基线文档只读**：`10-统一接口文档-v1.0.md` 与规范已分叉（它仍有 `GET /v1/config`、整数码错误体）。**不要改基线**，接口变更只写 `openapi.json`（见硬约束 6）。
    - 校验命令：`npx --yes @redocly/cli@latest lint public/api/openapi.json`（仓库根有 `redocly.yaml`）。标准是 **0 error**；`0 warning` 目前做不到，有 39 条已知项：
